@@ -4,13 +4,48 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
-  backend-placeholder:
+  detect-backend:
     runs-on: ubuntu-latest
+    outputs:
+      backend_present: ${{ steps.detect.outputs.backend_present }}
     steps:
       - uses: actions/checkout@v4
-      - name: CI bootstrap note
+      - id: detect
+        shell: bash
         run: |
-          echo "Backend code is not scaffolded yet."
-          echo "Replace this placeholder with lint/test jobs once backend pyproject and app are added."
+          if [ -f backend/pyproject.toml ]; then
+            echo "backend_present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend_present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  backend-tests:
+    needs: detect-backend
+    if: needs.detect-backend.outputs.backend_present == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .[dev]
+      - name: Run backend tests
+        run: python -m pytest tests/ -q
+
+  no-backend-note:
+    needs: detect-backend
+    if: needs.detect-backend.outputs.backend_present != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Backend not present yet
+        run: echo "backend/pyproject.toml not present yet; backend test job skipped."

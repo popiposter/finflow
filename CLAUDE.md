@@ -53,6 +53,12 @@ If local guidance is missing, add it as part of the change when the feature intr
 - Use `gh pr view <number> --repo popiposter/finflow --json number,title,body,url` to retrieve PR context when needed.
 - Do not fetch GitHub issue or PR URLs through web tools when `gh` can provide the same information.
 
+## Repo hygiene rules
+- Never commit generated artifacts such as `__pycache__/`, `*.pyc`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.venv/`, or local IDE/system files.
+- Before finalizing a task, inspect `git status` and remove generated files from the diff.
+- Keep each branch scoped to the current issue; do not partially implement future roadmap issues unless explicitly approved.
+- If CI is still a placeholder or partial workflow, state that clearly in the final report instead of implying full validation passed.
+
 ## Working rules for Claude Code
 - Before implementing a feature, read this file and IMPLEMENTATION.md.
 - Update IMPLEMENTATION.md before and after significant work.
