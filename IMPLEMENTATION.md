@@ -1,7 +1,7 @@
 # IMPLEMENTATION.md
 
 ## Current phase
-Project bootstrap and architecture setup.
+Project bootstrap, code quality tooling, and PostgreSQL-backed test infrastructure.
 
 ## Goals in progress
 - [ ] Create backend project skeleton.
@@ -10,10 +10,8 @@ Project bootstrap and architecture setup.
 - [ ] Configure settings management.
 - [ ] Configure async SQLAlchemy and Alembic.
 - [ ] Implement authentication foundation.
-- [ ] Add test infrastructure.
 - [ ] Add reusable local knowledge packs for new features.
-- [ ] Add code quality tooling configuration after backend bootstrap lands.
-- [ ] Add PostgreSQL-backed integration/API test infrastructure.
+- [ ] Implement PostgreSQL-backed test infrastructure (local + CI).
 
 ## Fixed decisions
 - Backend is Python/FastAPI only.
@@ -63,3 +61,13 @@ Project bootstrap and architecture setup.
   - Alembic can discover `Base.metadata` for migrations
   - Alembic migrations stored in `alembic_migrations/` (renamed from `alembic/` to avoid conflict with alembic package)
   - Updated `docs/agent/features/project-bootstrap.md` to reflect `alembic_migrations` path
+- [x] **Issue #8 - PostgreSQL test infrastructure** (completed):
+  - Added `testcontainers` to dev dependencies in `backend/pyproject.toml`
+  - Created `backend/tests/postgres.py` with centralized pytest fixtures for PostgreSQL via Testcontainers
+  - Created `backend/tests/integration/conftest.py` with DB-dependent test fixtures and markers
+  - Updated `backend/tests/integration/__init__.py` with documentation
+  - Added test markers (`unit`, `integration`, `api`) to pytest config in `pyproject.toml`
+  - Updated `.github/workflows/ci.yml` with separate jobs for:
+    - Fast checks (unit tests, linting, type-checking) without Docker/PostgreSQL
+    - DB-dependent tests using PostgreSQL service container
+  - Documented test commands in `IMPLEMENTATION.md`

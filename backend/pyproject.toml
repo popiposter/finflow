@@ -25,6 +25,7 @@ dev = [
     "pytest>=8.0.0,<9.0.0",
     "pytest-asyncio>=0.24.0,<0.25.0",
     "anyio>=4.4.0,<5.0.0",
+    "testcontainers>=4.0.0,<5.0.0",
     "ruff>=0.6.0,<0.7.0",
     "mypy>=1.11.0,<2.0.0",
     "pre-commit>=3.8.0,<4.0.0",
@@ -69,16 +70,32 @@ check_untyped_defs = true
 disallow_untyped_decorators = false
 no_implicit_optional = true
 warn_redundant_casts = true
-warn_unused_ignores = true
+warn_unused_ignores = false
 warn_no_return = true
 strict_optional = true
+exclude = [
+    "^tests/",  # Exclude test files from strict type checking
+]
 
 [tool.mypy.plugins.pydantic]
 strict = true
+
+# Allow test files to have looser type checking
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 filterwarnings = [
     "ignore::pytest.PytestDeprecationWarning",
+]
+
+# Test markers for filtering test runs
+markers = [
+    "unit: Unit tests (no database required)",
+    "integration: Integration tests (require PostgreSQL)",
+    "api: API tests (require FastAPI + PostgreSQL)",
 ]

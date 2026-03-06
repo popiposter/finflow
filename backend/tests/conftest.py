@@ -1,7 +1,6 @@
 """Test configuration and fixtures."""
 
 import asyncio
-from typing import AsyncGenerator
 
 import pytest
 from starlette.testclient import TestClient
