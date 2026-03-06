@@ -1,0 +1,107 @@
+name: PR CI Report
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  comment-ci-results:
+    if: ${{ github.event.workflow_run.event == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post CI summary to pull request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const prs = run.pull_requests || [];
+
+            if (prs.length === 0) {
+              core.info('No associated pull request found for this workflow run.');
+              return;
+            }
+
+            const pr = prs[0];
+            const { owner, repo } = context.repo;
+
+            const jobsResp = await github.rest.actions.listJobsForWorkflowRun({
+              owner,
+              repo,
+              run_id: run.id,
+              per_page: 100,
+            });
+
+            const jobs = jobsResp.data.jobs || [];
+
+            function icon(conclusion, status) {
+              if (conclusion === 'success') return '✅';
+              if (conclusion === 'failure') return '❌';
+              if (conclusion === 'cancelled') return '🚫';
+              if (conclusion === 'skipped') return '⏭️';
+              if (conclusion === 'neutral') return '⚪';
+              if (conclusion === 'timed_out') return '⏰';
+              if (status === 'in_progress' || status === 'queued' || status === 'waiting') return '🟡';
+              return '⚠️';
+            }
+
+            const overall = icon(run.conclusion, run.status);
+
+            const jobLines = jobs.map((job) => {
+              const failedSteps = (job.steps || [])
+                .filter((step) => step.conclusion === 'failure')
+                .map((step) => `\`${step.name}\``);
+
+              const failedPart = failedSteps.length > 0
+                ? `; failed step${failedSteps.length > 1 ? 's' : ''}: ${failedSteps.join(', ')}`
+                : '';
+
+              return `- ${icon(job.conclusion, job.status)} \`${job.name}\` — ${job.conclusion || job.status}${failedPart} ([details](${job.html_url}))`;
+            });
+
+            const body = [
+              '<!-- ci-report -->',
+              '## CI report',
+              `${overall} **${run.name}** finished with \`${run.conclusion || run.status}\`.`,
+              `- Run: [workflow run](${run.html_url})`,
+              `- Branch: \`${run.head_branch}\``,
+              `- Head SHA: \`${(run.head_sha || '').slice(0, 7)}\``,
+              '',
+              '### Jobs',
+              ...(jobLines.length > 0 ? jobLines : ['- No jobs reported.']),
+            ].join('\n');
+
+            const comments = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: pr.number,
+              per_page: 100,
+            });
+
+            const existing = comments.data.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes('<!-- ci-report -->')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+              core.info(`Updated CI report comment on PR #${pr.number}.`);
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pr.number,
+                body,
+              });
+              core.info(`Created CI report comment on PR #${pr.number}.`);
+            }
