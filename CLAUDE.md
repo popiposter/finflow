@@ -36,6 +36,17 @@ FinFlow is a personal finance system focused on:
 - Long-lived API tokens for iOS Shortcut must be shown once and stored only as hashes in the database.
 - Do not log secrets, tokens, passwords, or raw authorization headers.
 
+## Local knowledge base
+Before searching the web, read local repo guidance:
+1. `IMPLEMENTATION.md`
+2. `docs/agent/README.md`
+3. `.claude/rules/*.md`
+4. `docs/snippets/*.md`
+5. `docs/spec/*.md`
+
+When implementing a feature, prefer local repo guidance and examples over ad-hoc web search.
+If local guidance is missing, add it as part of the change when the feature introduces a new pattern.
+
 ## Working rules for Claude Code
 - Before implementing a feature, read this file and IMPLEMENTATION.md.
 - Update IMPLEMENTATION.md before and after significant work.
@@ -43,6 +54,7 @@ FinFlow is a personal finance system focused on:
 - Do not introduce alternative frameworks or libraries without explicit approval.
 - Do not rewrite unrelated files.
 - Preserve architecture consistency.
+- When completing a task, summarize changed files, tests, and follow-up risks.
 
 ## Backend layout
 ```text
@@ -69,6 +81,7 @@ backend/
 - Repository behavior that depends on SQL should have integration tests.
 - Write or update tests in the same change as production code.
 - Prefer happy-path tests first, then add authorization, validation, and edge cases.
+- Do not close an issue if required tests are missing.
 
 ## Delivery policy
 For each implemented feature, provide:

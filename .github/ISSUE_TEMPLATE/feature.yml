@@ -1,0 +1,49 @@
+name: Feature request
+description: Plan and implement a new product/backend/frontend capability
+labels: [feature]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What user or business outcome should this feature achieve?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope
+      description: List required implementation pieces
+      placeholder: |
+        - API endpoints
+        - DB changes
+        - UI changes
+        - background jobs
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: What must NOT be changed or implemented?
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Concrete checks for completion
+      placeholder: |
+        - [ ] Endpoint returns expected response
+        - [ ] Tests added
+        - [ ] Docs updated
+    validations:
+      required: true
+  - type: textarea
+    id: testing
+    attributes:
+      label: Test requirements
+      description: Required unit/integration/API tests
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to local repo docs, prior issues, or external docs

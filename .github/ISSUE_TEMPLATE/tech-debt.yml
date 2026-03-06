@@ -1,0 +1,31 @@
+name: Tech debt
+description: Cleanup, refactor, quality, documentation, or infrastructure work
+labels: [tech-debt]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What quality or maintainability issue exists?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What improvement should be made?
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: What must remain unchanged?
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      placeholder: |
+        - [ ] No behavior regression
+        - [ ] Tests updated
+        - [ ] Docs updated

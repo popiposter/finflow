@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: FinFlow architecture notes
+    url: https://github.com/popiposter/finflow/blob/main/docs/agent/README.md
+    about: Read local agent guidance and implementation playbooks before opening broad architecture questions.

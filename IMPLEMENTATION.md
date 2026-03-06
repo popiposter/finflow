@@ -11,6 +11,7 @@ Project bootstrap and architecture setup.
 - [ ] Configure async SQLAlchemy and Alembic.
 - [ ] Implement authentication foundation.
 - [ ] Add test infrastructure.
+- [ ] Add reusable local knowledge packs for new features.
 
 ## Fixed decisions
 - Backend is Python/FastAPI only.
@@ -20,6 +21,12 @@ Project bootstrap and architecture setup.
 - JWT uses PyJWT.
 - Web auth uses HttpOnly Secure cookies.
 - iOS Shortcut uses long-lived bearer API token stored hashed in DB.
+
+## Agent workflow
+- Before coding, Claude must read `CLAUDE.md`, `.claude/rules/*.md`, and relevant docs in `docs/agent/`.
+- For each issue: create a short plan, implement in small steps, update docs when a new reusable pattern appears.
+- Prefer local examples and snippets to web search.
+- If using a new library or pattern, create or update a local note under `docs/agent/`.
 
 ## Next implementation checklist
 1. Create `backend/pyproject.toml`.
@@ -31,3 +38,5 @@ Project bootstrap and architecture setup.
 
 ## Done log
 - [x] Repository initialized with Claude-oriented guidance files.
+- [x] Added GitHub issue templates, PR template, and workflow placeholders.
+- [x] Added local agent docs and reusable implementation playbooks.

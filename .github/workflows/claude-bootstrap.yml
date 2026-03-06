@@ -1,0 +1,13 @@
+name: Claude Code
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-note:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup instructions
+        run: |
+          echo "Install the Claude GitHub app and follow local command: /install-github-app"
+          echo "Then replace this placeholder workflow with a claude-code-action workflow tuned to your repo policies."
