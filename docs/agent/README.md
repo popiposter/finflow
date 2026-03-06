@@ -17,6 +17,7 @@ Whenever a feature introduces a reusable pattern, add or update a doc here so th
 
 ## Current packs
 - `backend-stack.md`
+- `backend-roadmap.md`
 - `auth-patterns.md`
 - `feature-delivery-checklist.md`
 - `refactoring-playbook.md`
@@ -26,3 +27,5 @@ Whenever a feature introduces a reusable pattern, add or update a doc here so th
 - `features/auth-foundation.md`
 - `features/domain-model.md`
 - `features/transaction-ingestion.md`
+- `features/planned-payments.md`
+- `features/reports-foundation.md`
