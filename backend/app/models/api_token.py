@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -30,11 +31,16 @@ class ApiToken(Base):
         index=True,
     )
     created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
-    last_used_at: Mapped[datetime | None] = mapped_column(default=None)
+    last_used_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True),
+        default=None,
+    )
     expires_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
