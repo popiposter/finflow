@@ -51,6 +51,87 @@ jobs:
               return '⚠️';
             }
 
+            function stripAnsi(text) {
+              return text.replace(/\u001b\[[0-9;]*m/g, '');
+            }
+
+            function trimSnippet(text, maxChars = 2500) {
+              if (text.length <= maxChars) return text;
+              return `${text.slice(0, maxChars)}\n... (truncated)`;
+            }
+
+            function findLastMatchIndex(lines, regex) {
+              for (let i = lines.length - 1; i >= 0; i -= 1) {
+                if (regex.test(lines[i])) return i;
+              }
+              return -1;
+            }
+
+            async function getJobLogText(jobId) {
+              try {
+                const response = await github.request(
+                  'GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs',
+                  {
+                    owner,
+                    repo,
+                    job_id: jobId,
+                    request: { redirect: 'manual' },
+                  }
+                );
+
+                const location = response.headers?.location;
+                if (location) {
+                  const fetched = await fetch(location);
+                  return await fetched.text();
+                }
+
+                if (typeof response.data === 'string') {
+                  return response.data;
+                }
+              } catch (error) {
+                core.warning(`Could not download logs for job ${jobId}: ${error.message}`);
+              }
+
+              return '';
+            }
+
+            function buildExcerpt(job, logText) {
+              if (!logText) return null;
+
+              const lines = stripAnsi(logText).split(/\r?\n/);
+              const failedSteps = (job.steps || [])
+                .filter((step) => step.conclusion === 'failure')
+                .map((step) => step.name);
+
+              let start = -1;
+              for (const failedStep of failedSteps) {
+                const idx = lines.findIndex((line) => line.includes(failedStep));
+                if (idx !== -1) {
+                  start = Math.max(0, idx - 5);
+                  break;
+                }
+              }
+
+              if (start === -1) {
+                const errorIdx = findLastMatchIndex(lines, /(error|failed|exception|traceback)/i);
+                if (errorIdx !== -1) {
+                  start = Math.max(0, errorIdx - 10);
+                }
+              }
+
+              if (start === -1) {
+                start = Math.max(0, lines.length - 40);
+              }
+
+              const snippet = lines
+                .slice(start, Math.min(lines.length, start + 40))
+                .filter((line) => line.trim().length > 0)
+                .join('\n');
+
+              if (!snippet.trim()) return null;
+              return trimSnippet(snippet);
+            }
+
             const overall = icon(run.conclusion, run.status);
 
             const jobLines = jobs.map((job) => {
@@ -65,6 +146,24 @@ jobs:
               return `- ${icon(job.conclusion, job.status)} \`${job.name}\` — ${job.conclusion || job.status}${failedPart} ([details](${job.html_url}))`;
             });
 
+            const failedJobs = jobs.filter((job) => job.conclusion === 'failure').slice(0, 3);
+            const excerptSections = [];
+
+            for (const job of failedJobs) {
+              const failedStepNames = (job.steps || [])
+                .filter((step) => step.conclusion === 'failure')
+                .map((step) => step.name);
+              const logText = await getJobLogText(job.id);
+              const excerpt = buildExcerpt(job, logText);
+
+              if (excerpt) {
+                const title = failedStepNames.length > 0
+                  ? `${job.name} / ${failedStepNames.join(', ')}`
+                  : job.name;
+                excerptSections.push(`#### ${title}\n\n\`\`\`text\n${excerpt}\n\`\`\``);
+              }
+            }
+
             const body = [
               '<!-- ci-report -->',
               '## CI report',
@@ -75,6 +174,7 @@ jobs:
               '',
               '### Jobs',
               ...(jobLines.length > 0 ? jobLines : ['- No jobs reported.']),
+              ...(excerptSections.length > 0 ? ['', '### Failed step excerpts', ...excerptSections] : []),
             ].join('\n');
 
             const comments = await github.rest.issues.listComments({
