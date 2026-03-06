@@ -1,6 +1,7 @@
 """FastAPI application entry point."""
 
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
@@ -9,7 +10,7 @@ from app.core.config import settings
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan context manager."""
     # Startup tasks
     yield

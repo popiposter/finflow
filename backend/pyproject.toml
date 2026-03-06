@@ -76,9 +76,7 @@ strict_optional = true
 exclude = [
     "^tests/",  # Exclude test files from strict type checking
 ]
-
-[tool.mypy.plugins.pydantic]
-strict = true
+plugins = ["pydantic.mypy"]
 
 # Allow test files to have looser type checking
 [[tool.mypy.overrides]]
