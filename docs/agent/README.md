@@ -24,3 +24,5 @@ Whenever a feature introduces a reusable pattern, add or update a doc here so th
 - `issue-execution-playbook.md`
 - `features/project-bootstrap.md`
 - `features/auth-foundation.md`
+- `features/domain-model.md`
+- `features/transaction-ingestion.md`
