@@ -33,7 +33,12 @@ async def get_auth_service() -> AsyncGenerator[AuthService, None]:
     from app.db.session import async_session_factory
 
     async with async_session_factory() as session:
-        yield AuthService(session)
+        try:
+            yield AuthService(session)
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def get_current_user(
@@ -185,17 +190,24 @@ async def refresh(
 @router.post("/logout")
 async def logout(
     response: Response,
+    request: Request,
     service: AuthService = Depends(get_auth_service),
 ) -> dict[str, str]:
-    """Logout a user and clear cookies.
+    """Logout a user and invalidate the refresh token.
 
     Args:
         response: FastAPI response for cookie clearing.
-        service: Auth service dependency (unused, but ensures dependencies are resolved).
+        request: FastAPI request for accessing refresh token cookie.
+        service: Auth service dependency.
 
     Returns:
         Logout confirmation.
     """
+    # Get refresh token from cookie
+    refresh_token = request.cookies.get("refresh_token")
+    # Invalidate the refresh token on the server
+    await service.logout(refresh_token)
+    # Clear cookies
     clear_auth_cookies(response)
     return {"message": "Logged out successfully"}
 

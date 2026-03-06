@@ -2,7 +2,7 @@
 
 from typing import AsyncGenerator
 
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, create_engine
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -27,6 +27,12 @@ engine = create_async_engine(
     pool_size=10,
     max_overflow=5,
     pool_pre_ping=True,
+)
+
+# Sync engine for test setup - uses sync driver directly
+sync_engine = create_engine(
+    str(settings.database_url).replace("+asyncpg", ""),
+    echo=settings.debug,
 )
 
 async_session_factory = async_sessionmaker(

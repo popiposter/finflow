@@ -20,6 +20,11 @@ def get_secure_flag() -> bool:
     Returns:
         True if running in production, False otherwise.
     """
+    # Don't use Secure flag in tests (pytest) to allow HTTP cookie testing
+    import os
+
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        return False
     return settings.is_production
 
 

@@ -47,6 +47,7 @@ def upgrade() -> None:
         sa.Column("is_revoked", sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("token_hash"),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
     )
     op.create_index("ix_api_tokens_user_id", "api_tokens", ["user_id"], unique=False)
 

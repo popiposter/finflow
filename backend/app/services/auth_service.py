@@ -5,8 +5,15 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import hash_api_token, hash_password, verify_password
+from app.core.security import (
+    decode_token,
+    generate_api_token,
+    hash_api_token,
+    hash_password,
+    verify_password,
+)
 from app.repositories.api_token_repository import ApiTokenRepository
+from app.repositories.refresh_session_repository import RefreshSessionRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import ApiTokenCreate, ApiTokenOut, UserCreate, UserOut
 
@@ -23,6 +30,7 @@ class AuthService:
         self.session = session
         self.user_repo = UserRepository(session)
         self.api_token_repo = ApiTokenRepository(session)
+        self.refresh_session_repo = RefreshSessionRepository(session)
 
     async def register(self, user_data: UserCreate) -> UserOut:
         """Register a new user.
@@ -69,6 +77,13 @@ class AuthService:
 
         access_token = self._create_access_token(user.id)
         refresh_token = self._create_refresh_token(user.id)
+        # Store refresh token hash for revocation
+        refresh_token_hash = hash_password(refresh_token)
+        await self.refresh_session_repo.create(
+            user_id=user.id,
+            token_hash=refresh_token_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        )
 
         return access_token, refresh_token
 
@@ -82,41 +97,49 @@ class AuthService:
             A tuple of (new_access_token, new_refresh_token).
 
         Raises:
-            ValueError: If the refresh token is invalid.
+            ValueError: If the refresh token is invalid or revoked.
         """
-        from app.core.security import decode_token
+        # Get the refresh session by verifying the token against stored hashes
+        session = await self.refresh_session_repo.get_by_token(refresh_token)
+        if session is None:
+            raise ValueError("Invalid refresh token")
 
-        try:
-            payload = decode_token(refresh_token)
-        except Exception as exc:
-            raise ValueError("Invalid refresh token") from exc
+        # Revoke the old session (single-use for refresh tokens)
+        await self.refresh_session_repo.revoke(session)
 
-        if payload.get("type") != "refresh":
-            raise ValueError("Invalid token type")
-
-        subject = payload.get("sub")
-        if subject is None:
-            raise ValueError("Invalid token payload")
-
-        user_id = UUID(subject)
-        user = await self.user_repo.get_by_id(user_id)
+        user = await self.user_repo.get_by_id(session.user_id)
         if user is None:
             raise ValueError("User not found")
 
         new_access_token = self._create_access_token(user.id)
         new_refresh_token = self._create_refresh_token(user.id)
 
+        # Create a new refresh session for the new token
+        from app.core.security import hash_password
+
+        new_refresh_token_hash = hash_password(new_refresh_token)
+
+        await self.refresh_session_repo.create(
+            user_id=user.id,
+            token_hash=new_refresh_token_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        )
+
         return new_access_token, new_refresh_token
 
-    async def logout(self, refresh_token: str) -> None:
-        """Logout a user (invalidate the refresh token).
+    async def logout(self, refresh_token: str | None = None) -> None:
+        """Logout a user and invalidate the refresh token.
 
         Args:
-            refresh_token: The current refresh token (for potential future revocation).
+            refresh_token: The current refresh token to invalidate.
         """
-        # Currently a no-op since JWTs are valid until expiry.
-        # In production, implement token revocation list if needed.
-        pass
+        if refresh_token is None:
+            return
+
+        # Get the refresh session by verifying the token against stored hashes
+        session = await self.refresh_session_repo.get_by_token(refresh_token)
+        if session is not None:
+            await self.refresh_session_repo.revoke(session)
 
     async def get_current_user(self, access_token: str) -> UserOut:
         """Get the current user from an access token.
@@ -130,8 +153,6 @@ class AuthService:
         Raises:
             ValueError: If the token is invalid or user not found.
         """
-        from app.core.security import decode_token
-
         try:
             payload = decode_token(access_token)
         except Exception as exc:
@@ -165,7 +186,7 @@ class AuthService:
         Returns:
             A tuple of (api_token_schema, raw_token).
         """
-        raw_token = self._generate_raw_api_token()
+        raw_token = generate_api_token()
         token_hash = hash_api_token(raw_token)
 
         expires_at = datetime.now(timezone.utc) + timedelta(
@@ -218,13 +239,3 @@ class AuthService:
         from app.core.security import create_refresh_token
 
         return create_refresh_token(str(user_id))
-
-    def _generate_raw_api_token(self) -> str:
-        """Generate a raw API token.
-
-        Returns:
-            The raw token string.
-        """
-        from app.core.security import generate_api_token
-
-        return generate_api_token()

@@ -71,12 +71,16 @@ def create_refresh_token(subject: str) -> str:
     Returns:
         The encoded JWT token string.
     """
+    import secrets
+
     now = datetime.now(timezone.utc)
     payload = {
         "sub": subject,
         "type": "refresh",
         "exp": now + timedelta(days=settings.jwt_refresh_token_expire_days),
         "iat": now,
+        # Add a unique nonce to ensure each token is unique even within same second
+        "jti": secrets.token_hex(8),
     }
     return jwt_encode(
         payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
