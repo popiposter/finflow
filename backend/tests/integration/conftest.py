@@ -36,9 +36,7 @@ __all__ = [
 ]
 
 
-def pytest_collection_modifyitems(
-    config: Any, items: list[Any]
-) -> None:
+def pytest_collection_modifyitems(config: Any, items: list[Any]) -> None:
     """Modify collected test items to add markers based on location.
 
     - Tests in tests/unit/ are marked as unit tests
@@ -61,12 +59,8 @@ def pytest_collection_modifyitems(
 
 def pytest_configure(config: Any) -> None:
     """Configure pytest with custom markers."""
-    config.addinivalue_line(
-        "markers", "unit: Unit tests (no database required)"
-    )
+    config.addinivalue_line("markers", "unit: Unit tests (no database required)")
     config.addinivalue_line(
         "markers", "integration: Integration tests (require PostgreSQL)"
     )
-    config.addinivalue_line(
-        "markers", "api: API tests (require FastAPI + PostgreSQL)"
-    )
+    config.addinivalue_line("markers", "api: API tests (require FastAPI + PostgreSQL)")

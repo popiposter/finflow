@@ -43,7 +43,7 @@ DATABASE_URL=postgresql+asyncpg://user:pass@host:port/db pytest tests/ -v
 - `backend-db-tests` job: Runs integration tests with PostgreSQL service container
 
 ## Test fixtures (see `backend/tests/postgres.py`)
-- `database_url` - Get connection URL (uses TESTcontainers or DATABASE_URL)
+- `database_url` - Get connection URL (uses Testcontainers or DATABASE_URL)
 - `db_engine` - Async SQLAlchemy engine
 - `db_session` - Isolated async database session with automatic rollback
 - `clean_db` - Schema setup/teardown for tests
