@@ -21,3 +21,6 @@ Whenever a feature introduces a reusable pattern, add or update a doc here so th
 - `feature-delivery-checklist.md`
 - `refactoring-playbook.md`
 - `github-cli-setup.md`
+- `issue-execution-playbook.md`
+- `features/project-bootstrap.md`
+- `features/auth-foundation.md`
