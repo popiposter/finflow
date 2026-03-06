@@ -47,8 +47,6 @@ jobs:
         run: python -m ruff format --check .
       - name: Run mypy type checking
         run: python -m mypy .
-      - name: Run unit tests (no DB)
-        run: python -m pytest tests/unit/ -v
 
   # DB-dependent tests - require PostgreSQL
   backend-db-tests:

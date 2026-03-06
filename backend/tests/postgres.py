@@ -1,4 +1,3 @@
-# type: ignore
 """PostgreSQL test fixtures using Testcontainers.
 
 This module provides centralized fixtures for DB-dependent tests that require
@@ -10,9 +9,13 @@ Fixture lifecycle:
 - db_url: Yields the database URL for tests
 - db_engine: Creates an async engine connected to test DB
 - db_session: Provides isolated async DB sessions for tests
+
+Unified behavior:
+- If DATABASE_URL environment variable is set, use it directly
+- Otherwise, use Testcontainers PostgreSQL (local development)
 """
 
-import asyncio
+import os
 from typing import AsyncGenerator
 
 import pytest
@@ -25,72 +28,47 @@ from sqlalchemy.ext.asyncio import (
 from testcontainers.postgres import PostgresContainer
 
 
-@pytest.fixture(scope="session")
-async def postgres_container() -> AsyncGenerator[PostgresContainer, None]:
-    """Start a PostgreSQL container for DB-dependent tests.
+def _get_database_url() -> str:
+    """Get database URL from environment or Testcontainers.
 
-    This fixture is session-scoped to avoid restarting the container for
-    every test module, but each test gets an isolated database within it.
-
-    Yields:
-        PostgresContainer: The running PostgreSQL container instance.
+    Returns DATABASE_URL if set, otherwise uses Testcontainers.
+    Testcontainers defaults to psycopg2 driver, but we override to use
+    asyncpg to match the project's async SQLAlchemy configuration.
     """
-    container = PostgresContainer("postgres:16-alpine")
+    if "DATABASE_URL" in os.environ:
+        return os.environ["DATABASE_URL"]
+
+    # Use Testcontainers for local development
+    container = PostgresContainer("postgres:16-alpine", driver="asyncpg")
     container.start()
-
-    # Wait for PostgreSQL to be ready
-    await asyncio.to_thread(container.get_connection_url)
-
-    try:
-        yield container
-    finally:
-        container.stop()
+    return str(container.get_connection_url())
 
 
-@pytest.fixture
-def db_url(postgres_container: PostgresContainer) -> str:
-    """Get the database URL for the test PostgreSQL instance.
+@pytest.fixture(scope="session")
+def database_url() -> str:
+    """Get the database URL for tests.
 
-    Args:
-        postgres_container: The running PostgreSQL container.
+    Returns DATABASE_URL if set in environment, otherwise starts
+    a Testcontainers PostgreSQL instance and returns its URL.
 
     Returns:
         The database URL as a string.
     """
-    return str(postgres_container.get_connection_url())
+    return _get_database_url()
 
 
 @pytest.fixture
-def db_url_with_test_db(postgres_container: PostgresContainer) -> str:
-    """Get the database URL with a unique test database name.
-
-    Creates a unique database name per test session to ensure isolation.
-
-    Args:
-        postgres_container: The running PostgreSQL container.
-
-    Returns:
-        The database URL pointing to a unique test database.
-    """
-    connection_url = postgres_container.get_connection_url()
-
-    # For Testcontainers, the URL format is typically:
-    # postgresql+psycopg2://postgres:postgres@localhost:port/postgres
-    return connection_url.replace("/postgres", "/test_finflow")
-
-
-@pytest.fixture
-async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
+async def db_engine(database_url: str) -> AsyncGenerator[AsyncEngine, None]:
     """Create an async SQLAlchemy engine connected to the test database.
 
     Args:
-        db_url: The database URL from postgres_container fixture.
+        database_url: The database URL (from environment or Testcontainers).
 
     Yields:
         AsyncEngine: The configured async engine.
     """
     engine = create_async_engine(
-        db_url,
+        database_url,
         echo=False,
         pool_size=5,
         max_overflow=2,
@@ -117,10 +95,7 @@ async def db_session(
     Yields:
         AsyncSession: A database session that auto-rolls back after use.
     """
-    async with db_engine.begin() as conn:
-        # Start a transaction that will be rolled back after the test
-        await conn.begin()
-
+    # Create session factory
     async_session_factory = async_sessionmaker(
         bind=db_engine,
         class_=AsyncSession,

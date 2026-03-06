@@ -7,6 +7,9 @@ adds integration-specific fixtures.
 To run integration tests:
     pytest tests/integration/ -v
 
+To run with a specific DATABASE_URL (e.g., for CI):
+    DATABASE_URL=postgresql+asyncpg://user:pass@host:port/db pytest tests/integration/ -v
+
 To run only unit tests (no DB required):
     pytest tests/unit/ -v
 
@@ -20,20 +23,16 @@ import pytest
 
 from tests.postgres import (
     clean_db,
+    database_url,
     db_engine,
     db_session,
-    db_url,
-    db_url_with_test_db,
-    postgres_container,
 )
 
 __all__ = [
     "clean_db",
     "db_engine",
     "db_session",
-    "db_url",
-    "db_url_with_test_db",
-    "postgres_container",
+    "database_url",
 ]
 
 
@@ -63,11 +62,11 @@ def pytest_collection_modifyitems(
 def pytest_configure(config: Any) -> None:
     """Configure pytest with custom markers."""
     config.addinivalue_line(
-        "markers", "unit: Mark tests as unit tests (no DB required)"
+        "markers", "unit: Unit tests (no database required)"
     )
     config.addinivalue_line(
-        "markers", "integration: Mark tests as integration tests (require DB)"
+        "markers", "integration: Integration tests (require PostgreSQL)"
     )
     config.addinivalue_line(
-        "markers", "api: Mark tests as API tests (require FastAPI app + DB)"
+        "markers", "api: API tests (require FastAPI + PostgreSQL)"
     )

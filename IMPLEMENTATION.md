@@ -63,11 +63,14 @@ Project bootstrap, code quality tooling, and PostgreSQL-backed test infrastructu
   - Updated `docs/agent/features/project-bootstrap.md` to reflect `alembic_migrations` path
 - [x] **Issue #8 - PostgreSQL test infrastructure** (completed):
   - Added `testcontainers` to dev dependencies in `backend/pyproject.toml`
-  - Created `backend/tests/postgres.py` with centralized pytest fixtures for PostgreSQL via Testcontainers
-  - Created `backend/tests/integration/conftest.py` with DB-dependent test fixtures and markers
+  - Created `backend/tests/postgres.py` with unified pytest fixtures:
+    - Uses `DATABASE_URL` if set (CI) or Testcontainers (local)
+    - `database_url`, `db_engine`, `db_session`, `clean_db` fixtures
+  - Created `backend/tests/integration/conftest.py` with test markers and fixture exports
+  - Created `backend/tests/integration/test_database.py` with real DB-backed tests
   - Updated `backend/tests/integration/__init__.py` with documentation
   - Added test markers (`unit`, `integration`, `api`) to pytest config in `pyproject.toml`
-  - Updated `.github/workflows/ci.yml` with separate jobs for:
-    - Fast checks (unit tests, linting, type-checking) without Docker/PostgreSQL
-    - DB-dependent tests using PostgreSQL service container
-  - Documented test commands in `IMPLEMENTATION.md`
+  - Updated `.github/workflows/ci.yml` with two jobs:
+    - `backend-quick-checks`: linting, type-checking (no Docker/PostgreSQL)
+    - `backend-db-tests`: integration tests with PostgreSQL service container
+  - Updated `docs/snippets/testing.md` with test commands and coverage info
