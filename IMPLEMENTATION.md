@@ -1,7 +1,7 @@
 # IMPLEMENTATION.md
 
 ## Current phase
-Project bootstrap, code quality tooling, and PostgreSQL-backed test infrastructure.
+Project bootstrap, code quality tooling, PostgreSQL-backed test infrastructure, and authentication foundation.
 
 ## Goals in progress
 - [ ] Create backend project skeleton.
@@ -9,7 +9,6 @@ Project bootstrap, code quality tooling, and PostgreSQL-backed test infrastructu
 - [ ] Add FastAPI application factory and health endpoint.
 - [ ] Configure settings management.
 - [ ] Configure async SQLAlchemy and Alembic.
-- [ ] Implement authentication foundation.
 - [ ] Add reusable local knowledge packs for new features.
 - [ ] Implement PostgreSQL-backed test infrastructure (local + CI).
 
@@ -74,3 +73,13 @@ Project bootstrap, code quality tooling, and PostgreSQL-backed test infrastructu
     - `backend-quick-checks`: linting, type-checking (no Docker/PostgreSQL)
     - `backend-db-tests`: integration tests with PostgreSQL service container
   - Updated `docs/snippets/testing.md` with test commands and coverage info
+- [x] **Issue #2 - Auth foundation** (completed):
+  - Models: `User`, `ApiToken` with PostgreSQL UUID types and timestamps
+  - Migration: `alembic_migrations/versions/20260306194919_add_auth_tables.py`
+  - Security helpers: `hash_password`, `verify_password`, JWT create/decode, API token gen/hash
+  - Cookie helpers: `set_access_cookie`, `set_refresh_cookie`, `clear_auth_cookies`
+  - Repositories: `UserRepository`, `ApiTokenRepository`
+  - Auth service: register, login, refresh, logout, get_current_user, API token CRUD
+  - Routes: `/register`, `/login`, `/refresh`, `/logout`, `/me`, `/api-tokens` (GET/POST)
+  - Tests: unit, integration, and API tests for all endpoints
+  - Updated `IMPLEMENTATION.md` with done log entry for this issue

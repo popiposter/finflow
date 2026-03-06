@@ -1,0 +1,253 @@
+"""Authentication API routes."""
+
+from typing import AsyncGenerator
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+
+from app.core.auth_cookies import (
+    clear_auth_cookies,
+    set_access_cookie,
+    set_refresh_cookie,
+)
+from app.schemas.auth import (
+    ApiTokenCreate,
+    ApiTokenOut,
+    LoginRequest,
+    Token,
+    TokenRefresh,
+    UserCreate,
+    UserOut,
+)
+from app.services.auth_service import AuthService
+
+router = APIRouter(prefix="/auth", tags=["authentication"])
+
+
+async def get_auth_service() -> AsyncGenerator[AuthService, None]:
+    """Get auth service with database session.
+
+    Yields:
+        AuthService instance.
+    """
+    from app.db.session import async_session_factory
+
+    async with async_session_factory() as session:
+        yield AuthService(session)
+
+
+async def get_current_user(
+    request: Request,
+    service: AuthService = Depends(get_auth_service),
+) -> UserOut:
+    """Get current user from access token cookie or Authorization header.
+
+    Args:
+        request: FastAPI request for accessing cookies.
+        service: Auth service dependency.
+
+    Returns:
+        Current user schema.
+
+    Raises:
+        HTTPException: If authentication is invalid.
+    """
+    # Try to get token from Authorization header first (Bearer token)
+    auth_header = request.headers.get("Authorization")
+    access_token = None
+
+    if auth_header and auth_header.startswith("Bearer "):
+        access_token = auth_header[7:]
+    else:
+        # Try to get from cookie
+        access_token = request.cookies.get("access_token")
+        if access_token and access_token.startswith("Bearer "):
+            access_token = access_token[7:]
+
+    if access_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        return await service.get_current_user(access_token)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from e
+
+
+@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+async def register(
+    user_data: UserCreate,
+    service: AuthService = Depends(get_auth_service),
+) -> UserOut:
+    """Register a new user.
+
+    Args:
+        user_data: Registration data (email, password).
+        service: Auth service dependency.
+
+    Returns:
+        Created user schema.
+
+    Raises:
+        HTTPException: If email is already registered.
+    """
+    try:
+        user = await service.register(user_data)
+        return user
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+
+
+@router.post("/login", response_model=Token)
+async def login(
+    response: Response,
+    login_data: LoginRequest,
+    service: AuthService = Depends(get_auth_service),
+) -> Token:
+    """Authenticate a user and set cookies.
+
+    Args:
+        response: FastAPI response for cookie setting.
+        login_data: Login credentials (email, password).
+        service: Auth service dependency.
+
+    Returns:
+        Token response with access token.
+
+    Raises:
+        HTTPException: If credentials are invalid.
+    """
+    try:
+        access_token, refresh_token = await service.login(
+            login_data.email,
+            login_data.password,
+        )
+        set_access_cookie(response, access_token)
+        set_refresh_cookie(response, refresh_token)
+        return Token(access_token=access_token)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from e
+
+
+@router.post("/refresh", response_model=TokenRefresh)
+async def refresh(
+    response: Response,
+    request: Request,
+    service: AuthService = Depends(get_auth_service),
+) -> TokenRefresh:
+    """Refresh authentication tokens.
+
+    Args:
+        response: FastAPI response for cookie setting.
+        request: FastAPI request for accessing refresh token cookie.
+        service: Auth service dependency.
+
+    Returns:
+        Token refresh response with new tokens.
+
+    Raises:
+        HTTPException: If refresh token is invalid.
+    """
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    try:
+        new_access, new_refresh = await service.refresh_tokens(refresh_token)
+        set_access_cookie(response, new_access)
+        set_refresh_cookie(response, new_refresh)
+        return TokenRefresh(access_token=new_access, refresh_token=new_refresh)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from e
+
+
+@router.post("/logout")
+async def logout(
+    response: Response,
+    service: AuthService = Depends(get_auth_service),
+) -> dict[str, str]:
+    """Logout a user and clear cookies.
+
+    Args:
+        response: FastAPI response for cookie clearing.
+        service: Auth service dependency (unused, but ensures dependencies are resolved).
+
+    Returns:
+        Logout confirmation.
+    """
+    clear_auth_cookies(response)
+    return {"message": "Logged out successfully"}
+
+
+@router.get("/me", response_model=UserOut)
+async def get_me(
+    user: UserOut = Depends(get_current_user),
+) -> UserOut:
+    """Get current user profile.
+
+    Args:
+        user: Current user from access token.
+
+    Returns:
+        Current user schema.
+    """
+    return user
+
+
+@router.post("/api-tokens", response_model=ApiTokenOut)
+async def create_api_token(
+    token_data: ApiTokenCreate,
+    user: UserOut = Depends(get_current_user),
+    service: AuthService = Depends(get_auth_service),
+) -> ApiTokenOut:
+    """Create a new API token.
+
+    Args:
+        token_data: Token creation data (name).
+        user: Current user from access token.
+        service: Auth service dependency.
+
+    Returns:
+        Created API token schema.
+    """
+    api_token, raw_token = await service.create_api_token(user.id, token_data)
+    # Note: In production, you might want to return both the token and raw token
+    # The raw token should only be shown once to the user
+    return api_token
+
+
+@router.get("/api-tokens", response_model=list[ApiTokenOut])
+async def list_api_tokens(
+    user: UserOut = Depends(get_current_user),
+    service: AuthService = Depends(get_auth_service),
+) -> list[ApiTokenOut]:
+    """List active API tokens for current user.
+
+    Args:
+        user: Current user from access token.
+        service: Auth service dependency.
+
+    Returns:
+        List of active API tokens.
+    """
+    return await service.list_api_tokens(user.id)
