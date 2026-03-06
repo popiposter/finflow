@@ -2,12 +2,14 @@
 
 ## How Claude should execute an issue
 1. Read the issue body carefully.
-2. Read `CLAUDE.md`, `IMPLEMENTATION.md`, `.claude/rules/*.md`, and the relevant file in `docs/agent/features/`.
-3. Restate the plan before editing files.
-4. Change the minimum number of files necessary.
-5. Add tests in the same task.
-6. Update docs if a reusable pattern appears.
-7. Summarize files changed, tests, and remaining follow-ups.
+2. Retrieve issue context via GitHub CLI, not web fetch:
+   - `gh issue view <number> --repo popiposter/finflow --json number,title,body,url`
+3. Read `CLAUDE.md`, `IMPLEMENTATION.md`, `.claude/rules/*.md`, and the relevant file in `docs/agent/features/`.
+4. Restate the plan before editing files.
+5. Change the minimum number of files necessary.
+6. Add tests in the same task.
+7. Update docs if a reusable pattern appears.
+8. Summarize files changed, tests, and remaining follow-ups.
 
 ## Branch naming
 - `<issue-number>-short-kebab-name`

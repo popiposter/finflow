@@ -47,6 +47,12 @@ Before searching the web, read local repo guidance:
 When implementing a feature, prefer local repo guidance and examples over ad-hoc web search.
 If local guidance is missing, add it as part of the change when the feature introduces a new pattern.
 
+## GitHub workflow rules
+- For GitHub issues and pull requests, prefer GitHub CLI over web fetch.
+- Use `gh issue view <number> --repo popiposter/finflow --json number,title,body,url` to retrieve issue context.
+- Use `gh pr view <number> --repo popiposter/finflow --json number,title,body,url` to retrieve PR context when needed.
+- Do not fetch GitHub issue or PR URLs through web tools when `gh` can provide the same information.
+
 ## Working rules for Claude Code
 - Before implementing a feature, read this file and IMPLEMENTATION.md.
 - Update IMPLEMENTATION.md before and after significant work.
