@@ -30,3 +30,4 @@ Whenever a feature introduces a reusable pattern, add or update a doc here so th
 - `features/planned-payments.md`
 - `features/reports-foundation.md`
 - `features/code-quality-tooling.md`
+- `features/testing-with-postgres.md`

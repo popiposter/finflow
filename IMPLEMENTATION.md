@@ -13,6 +13,7 @@ Project bootstrap and architecture setup.
 - [ ] Add test infrastructure.
 - [ ] Add reusable local knowledge packs for new features.
 - [ ] Add code quality tooling configuration after backend bootstrap lands.
+- [ ] Add PostgreSQL-backed integration/API test infrastructure.
 
 ## Fixed decisions
 - Backend is Python/FastAPI only.
@@ -23,6 +24,9 @@ Project bootstrap and architecture setup.
 - Web auth uses HttpOnly Secure cookies.
 - iOS Shortcut uses long-lived bearer API token stored hashed in DB.
 - Code quality stack is Ruff + mypy + pre-commit + GitHub Actions.
+- DB-dependent tests use real PostgreSQL, not SQLite.
+- Local DB-dependent tests should use Testcontainers.
+- CI DB-dependent tests should use GitHub Actions PostgreSQL service containers.
 
 ## Agent workflow
 - Before coding, Claude must read `CLAUDE.md`, `.claude/rules/*.md`, and relevant docs in `docs/agent/`.
@@ -39,6 +43,7 @@ Project bootstrap and architecture setup.
 5. Add test scaffolding with one health-check API test.
 6. Only after scaffold is green, move to auth models and migrations.
 7. After bootstrap, wire Ruff, mypy, pre-commit, and CI commands into the actual backend config.
+8. After bootstrap, add PostgreSQL test infrastructure for DB-dependent tests.
 
 ## Done log
 - [x] Repository initialized with Claude-oriented guidance files.
