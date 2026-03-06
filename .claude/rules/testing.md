@@ -5,3 +5,4 @@
 - For large refactors, add characterization tests first.
 - Prefer fast unit tests first, then integration/API coverage.
 - Do not mark a task done while known regressions remain untested.
+- Treat lint, type-check, and test failures as blocking for merge.

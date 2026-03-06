@@ -12,6 +12,7 @@ Project bootstrap and architecture setup.
 - [ ] Implement authentication foundation.
 - [ ] Add test infrastructure.
 - [ ] Add reusable local knowledge packs for new features.
+- [ ] Add code quality tooling configuration after backend bootstrap lands.
 
 ## Fixed decisions
 - Backend is Python/FastAPI only.
@@ -21,12 +22,14 @@ Project bootstrap and architecture setup.
 - JWT uses PyJWT.
 - Web auth uses HttpOnly Secure cookies.
 - iOS Shortcut uses long-lived bearer API token stored hashed in DB.
+- Code quality stack is Ruff + mypy + pre-commit + GitHub Actions.
 
 ## Agent workflow
 - Before coding, Claude must read `CLAUDE.md`, `.claude/rules/*.md`, and relevant docs in `docs/agent/`.
 - For each issue: create a short plan, implement in small steps, update docs when a new reusable pattern appears.
 - Prefer local examples and snippets to web search.
 - If using a new library or pattern, create or update a local note under `docs/agent/`.
+- Run fast quality checks during implementation whenever tooling is available.
 
 ## Next implementation checklist
 1. Create `backend/pyproject.toml`.
@@ -35,8 +38,10 @@ Project bootstrap and architecture setup.
 4. Create app startup wiring and router registration.
 5. Add test scaffolding with one health-check API test.
 6. Only after scaffold is green, move to auth models and migrations.
+7. After bootstrap, wire Ruff, mypy, pre-commit, and CI commands into the actual backend config.
 
 ## Done log
 - [x] Repository initialized with Claude-oriented guidance files.
 - [x] Added GitHub issue templates, PR template, and workflow placeholders.
 - [x] Added local agent docs and reusable implementation playbooks.
+- [x] Added initial code-quality guidance and root pre-commit config.
