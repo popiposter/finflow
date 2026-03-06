@@ -3,6 +3,7 @@
 from app.schemas.auth import (
     ApiTokenCreate,
     ApiTokenOut,
+    ApiTokenOutWithToken,
     LoginRequest,
     Token,
     TokenRefresh,
@@ -18,4 +19,5 @@ __all__ = [
     "TokenRefresh",
     "ApiTokenCreate",
     "ApiTokenOut",
+    "ApiTokenOutWithToken",
 ]

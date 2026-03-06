@@ -12,6 +12,7 @@ from app.core.auth_cookies import (
 from app.schemas.auth import (
     ApiTokenCreate,
     ApiTokenOut,
+    ApiTokenOutWithToken,
     LoginRequest,
     Token,
     TokenRefresh,
@@ -214,12 +215,12 @@ async def get_me(
     return user
 
 
-@router.post("/api-tokens", response_model=ApiTokenOut)
+@router.post("/api-tokens", response_model=ApiTokenOutWithToken)
 async def create_api_token(
     token_data: ApiTokenCreate,
     user: UserOut = Depends(get_current_user),
     service: AuthService = Depends(get_auth_service),
-) -> ApiTokenOut:
+) -> ApiTokenOutWithToken:
     """Create a new API token.
 
     Args:
@@ -228,12 +229,13 @@ async def create_api_token(
         service: Auth service dependency.
 
     Returns:
-        Created API token schema.
+        Created API token with raw token shown once.
+        The raw token should be stored securely by the user.
     """
     api_token, raw_token = await service.create_api_token(user.id, token_data)
-    # Note: In production, you might want to return both the token and raw token
-    # The raw token should only be shown once to the user
-    return api_token
+    token_out = api_token.model_dump()
+    token_out["raw_token"] = raw_token
+    return ApiTokenOutWithToken(**token_out)
 
 
 @router.get("/api-tokens", response_model=list[ApiTokenOut])

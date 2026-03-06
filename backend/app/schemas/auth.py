@@ -58,7 +58,7 @@ class ApiTokenCreate(BaseModel):
 
 
 class ApiTokenOut(BaseModel):
-    """Schema for API token response."""
+    """Schema for API token response (stored data)."""
 
     id: UUID
     user_id: UUID
@@ -69,3 +69,13 @@ class ApiTokenOut(BaseModel):
     is_revoked: bool
 
     model_config = {"from_attributes": True}
+
+
+class ApiTokenOutWithToken(ApiTokenOut):
+    """Schema for API token response including the raw token.
+
+    This schema is used only for the initial creation response
+    when the raw token should be shown once to the user.
+    """
+
+    raw_token: str
