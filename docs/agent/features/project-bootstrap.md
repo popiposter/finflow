@@ -22,7 +22,7 @@ Create the minimum production-grade backend scaffold for FinFlow so all later fe
 - `backend/app/db/base.py`
 - `backend/app/db/session.py`
 - `backend/alembic.ini`
-- `backend/alembic/env.py`
+- `backend/alembic_migrations/env.py`
 - `backend/tests/api/test_health.py`
 
 ## Design rules

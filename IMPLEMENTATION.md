@@ -50,3 +50,16 @@ Project bootstrap and architecture setup.
 - [x] Added GitHub issue templates, PR template, and workflow placeholders.
 - [x] Added local agent docs and reusable implementation playbooks.
 - [x] Added initial code-quality guidance and root pre-commit config.
+- [x] **Issue #1 - Backend bootstrap** (completed):
+  - `backend/pyproject.toml` with FastAPI, SQLAlchemy async, Alembic, Pydantic v2, pytest dependencies
+  - `backend/app/core/config.py` with pydantic-settings
+  - `backend/app/db/base.py` with SQLAlchemy declarative base
+  - `backend/app/db/session.py` with async engine and session factory
+  - `backend/app/main.py` with FastAPI app factory and lifespan
+  - `backend/app/api/v1/health.py` with health endpoint
+  - `backend/app/api/v1/router.py` with API v1 router
+  - `backend/alembic.ini` and `backend/alembic_migrations/env.py` for migrations
+  - Test scaffold with `backend/tests/api/test_health.py` (3 tests, no DB required)
+  - Alembic can discover `Base.metadata` for migrations
+  - Alembic migrations stored in `alembic_migrations/` (renamed from `alembic/` to avoid conflict with alembic package)
+  - Updated `docs/agent/features/project-bootstrap.md` to reflect `alembic_migrations` path
