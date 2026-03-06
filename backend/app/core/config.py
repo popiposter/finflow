@@ -3,7 +3,6 @@
 from functools import lru_cache
 from typing import Annotated
 
-from pydantic import PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,10 +20,9 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # Database
-    database_url: Annotated[
-        PostgresDsn,
-        "PostgreSQL connection URL",
-    ] = "postgresql+asyncpg://finflow:finflow@localhost:5432/finflow"
+    database_url: Annotated[str, "PostgreSQL connection URL"] = (
+        "postgresql+asyncpg://finflow:finflow@localhost:5432/finflow"
+    )
 
     # JWT
     jwt_secret_key: str = "change-me-in-production"

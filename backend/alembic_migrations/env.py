@@ -2,11 +2,10 @@
 
 from typing import Any
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
-
-from alembic import context
 
 # Import models for autogenerate support
 from app.core.config import settings
