@@ -1,6 +1,7 @@
 """Transaction repository for database access."""
 
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import select
@@ -106,7 +107,7 @@ class TransactionRepository:
         self,
         user_id: UUID,
         account_id: UUID,
-        amount: float,
+        amount: Decimal,
         type_: TransactionType,
         date_accrual: datetime,
         date_cash: datetime,

@@ -1,3 +1,5 @@
+"""Unit tests package."""
+
 """Unit tests package.
 
 Unit tests verify business logic and model behavior without database access.

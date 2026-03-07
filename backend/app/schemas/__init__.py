@@ -18,6 +18,13 @@ from app.schemas.finance import (
     TransactionCreate,
     TransactionOut,
 )
+from app.schemas.parse_create import (
+    ParseAndCreateResponse,
+    ParsedResult,
+    ParseErrorResponse,
+    ParseRequest,
+    TransactionCreateRequest,
+)
 
 __all__ = [
     # Auth
@@ -36,4 +43,10 @@ __all__ = [
     "CategoryOut",
     "TransactionCreate",
     "TransactionOut",
+    # Parse-and-create
+    "ParseRequest",
+    "ParsedResult",
+    "TransactionCreateRequest",
+    "ParseAndCreateResponse",
+    "ParseErrorResponse",
 ]
