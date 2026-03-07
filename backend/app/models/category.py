@@ -17,6 +17,12 @@ class Category(Base):
     Categories support nesting via parent_id to create a tree structure.
     Top-level categories have parent_id = NULL.
 
+    User ownership determines scope:
+    - user_id set: Private category for that user
+    - user_id NULL: System-level category (shared across all users)
+
+    Note: System category seed migration is not implemented in Stage 1.
+
     Examples:
         Income
             ├── Salary

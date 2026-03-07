@@ -1,6 +1,7 @@
 """Account model for tracking financial accounts."""
 
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID, uuid4
 
 from sqlalchemy import ForeignKey, func
@@ -54,7 +55,7 @@ class Account(Base):
     current_balance: Mapped[Money] = mapped_column(
         MONEY_TYPE,
         nullable=False,
-        default=0.00,
+        default=Decimal("0.00"),
     )
     # Original currency code (e.g., "USD", "EUR") - for multi-currency support
     currency_code: Mapped[str] = mapped_column(

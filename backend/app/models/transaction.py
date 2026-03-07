@@ -26,8 +26,16 @@ class Transaction(Base):
     - category_id: How to categorize it
     - counterparty_account_id: Optional opposing account (for transfers)
 
-    Amounts are stored as positive values with a type field to determine
-    debit/credit direction based on account type.
+    Amount is stored as an unsigned Decimal. The direction (debit/credit) is
+    determined by combining the `type` field with the account's `type`. For
+    example:
+    - A PAYMENT from a checking account is a debit (negative balance change)
+    - A REFUND to a credit card is a credit (negative balance change)
+    - TRANSFER between accounts requires two transactions with opposite signs
+
+    See also:
+    - `Account.current_balance`: Tracks running balance (positive=asset, negative=liability)
+    - `TransactionType`: Defines the nature of each transaction
     """
 
     __tablename__ = "transactions"
