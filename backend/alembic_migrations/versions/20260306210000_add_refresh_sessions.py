@@ -20,7 +20,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade database schema."""
-    # Refresh sessions table with timezone-aware timestamps
     op.create_table(
         "refresh_sessions",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -37,7 +36,10 @@ def upgrade() -> None:
         "ix_refresh_sessions_user_id", "refresh_sessions", ["user_id"], unique=False
     )
     op.create_index(
-        "ix_refresh_sessions_token_hash", "refresh_sessions", ["refresh_token_hash"], unique=False
+        "ix_refresh_sessions_token_hash",
+        "refresh_sessions",
+        ["refresh_token_hash"],
+        unique=False,
     )
 
 

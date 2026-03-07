@@ -55,8 +55,6 @@ class RefreshSessionRepository:
         Returns:
             The refresh session if found and verified, None otherwise.
         """
-        # Get all active sessions for the current time window
-        # We need to verify each one because hash_password uses random salt
         stmt = select(RefreshSession).where(
             RefreshSession.revoked_at.is_(None),
             RefreshSession.expires_at > datetime.now(timezone.utc),
@@ -64,7 +62,6 @@ class RefreshSessionRepository:
         result = await self.session.scalars(stmt)
         sessions = list(result.all())
 
-        # Verify each session's hash against the provided token
         for session in sessions:
             if verify_password(token, session.refresh_token_hash):
                 return session
@@ -101,7 +98,6 @@ class RefreshSessionRepository:
         """
         session.revoked_at = datetime.now(timezone.utc)
         await self.session.flush()
-        # Refresh to see if it's actually persisted
         await self.session.refresh(session)
         return session
 
@@ -114,10 +110,14 @@ class RefreshSessionRepository:
         Returns:
             The most recent active refresh session, or None if none exist.
         """
-        stmt = select(RefreshSession).where(
-            RefreshSession.user_id == user_id,
-            RefreshSession.revoked_at.is_(None),
-            RefreshSession.expires_at > datetime.now(timezone.utc),
-        ).order_by(RefreshSession.created_at.desc())
+        stmt = (
+            select(RefreshSession)
+            .where(
+                RefreshSession.user_id == user_id,
+                RefreshSession.revoked_at.is_(None),
+                RefreshSession.expires_at > datetime.now(timezone.utc),
+            )
+            .order_by(RefreshSession.created_at.desc())
+        )
         result = await self.session.scalar(stmt)
         return result

@@ -1,5 +1,6 @@
 """Test configuration and fixtures for backend tests."""
 
+import asyncio
 from collections.abc import AsyncGenerator, Generator
 
 import pytest
@@ -12,6 +13,14 @@ from starlette.testclient import TestClient
 import app.models  # noqa: F401
 from app.db import Base, async_session_factory, engine
 from app.main import app
+
+
+@pytest.fixture(scope="session")
+def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+    """Create a session-scoped event loop for async fixtures."""
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture
