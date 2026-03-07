@@ -73,9 +73,9 @@ async def get_current_user(
         ) from e
 
 
-async def get_parse_create_service() -> (
-    AsyncGenerator[TransactionParseCreateService, None]
-):
+async def get_parse_create_service() -> AsyncGenerator[
+    TransactionParseCreateService, None
+]:
     """Get parse-create service with database session.
 
     Yields:
