@@ -1,26 +1,25 @@
 # CLAUDE.md
 
-This file is intentionally short. It gives AI coding agents the minimum repository-specific contract and points them to the real source documents.
+This file is the short contract for AI coding agents working in FinFlow. It should stay compact and never become a second playbook.
 
-## Default workflow
+## Do first
 
-1. Implement the feature.
-2. Add unit or smoke tests only unless the task explicitly asks for heavier coverage.
-3. Stop for review.
-4. Add integration or API tests in a follow-up task.
-5. Expand CI only when that heavier test layer is ready.
+1. Read `README.md` for repo navigation.
+2. Read `IMPLEMENTATION.md` for current scope.
+3. Read `docs/testing-architecture.md` before changing tests, fixtures, or CI.
+4. Use `PLAYBOOK.md` only as a pointer to the shared private playbook repo.
 
-## Source documents
+## Default delivery mode
 
-- Project overview: `README.md`
-- Docs index: `docs/README.md`
-- Testing rules: `docs/testing-architecture.md`
-- Current scope and status: `IMPLEMENTATION.md`
-- External process playbook: `https://github.com/popiposter/claude-github-dev-playbook`
+- Implement the feature first.
+- Add unit or smoke tests only unless the task explicitly asks for heavier coverage.
+- Stop for review.
+- Add integration or API tests in a follow-up task.
+- Expand CI only when that heavier layer is ready.
 
-## Repository constraints
+## Hard constraints
 
 - Do not add test-only sync database paths into runtime application code.
 - Keep ORM models aligned with production migrations.
 - Prefer config-driven auth lifetimes over hardcoded durations.
-- Keep documentation compact and avoid duplicating the same rules across many files.
+- Prefer editing an existing source-of-truth doc over creating another overlapping markdown file.

@@ -1,21 +1,29 @@
 # Rule folder notes
 
-Use this folder only for small, repository-specific rule files.
+Use this folder only for small, repo-specific, operational rule files.
 
-## Keep rules narrow
+## Good rule files
 
-- One file, one topic.
-- Prefer short operational constraints over large policy essays.
-- Link to `CLAUDE.md`, `docs/testing-architecture.md`, or the external playbook instead of repeating them.
+A good rule file is:
+
+- Narrow: one topic.
+- Mechanical: easy for an agent to apply.
+- Local: specific to FinFlow.
+- Stable: unlikely to contradict `CLAUDE.md` or `docs/testing-architecture.md`.
 
 ## Good examples
 
-- Naming or path conventions unique to FinFlow.
-- A repo-specific CI or migration constraint.
-- A single workflow invariant that an AI agent can apply mechanically.
+- A FinFlow-only migration convention.
+- A repository-specific path or naming invariant.
+- A CI behavior unique to this codebase.
 
-## Avoid
+## Bad examples
 
-- Full copies of staged workflow guidance.
-- Rewriting the same testing rules in multiple files.
-- Long narrative docs that belong in `docs/`.
+- Repeating the full staged workflow.
+- Rewriting testing architecture already documented elsewhere.
+- Long essays that belong in `docs/` or the external playbook repo.
+
+## Maintenance
+
+When a rule becomes obsolete, update or delete it.
+When a rule becomes general across products, move it to the private playbook repo.

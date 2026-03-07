@@ -1,19 +1,19 @@
 # PLAYBOOK.md
 
-This file is a local pointer, not the full process manual.
+This file is only a local pointer.
 
-## Source of truth
+## Shared source of truth
 
-The main playbook now lives in the private repository:
+Reusable process guidance lives in the private repository:
 
 - `popiposter/claude-github-dev-playbook`
 
-## What stays local
+## What remains local
 
-Only repository-specific deltas should stay here:
+Keep only FinFlow-specific deltas here:
 
-- FinFlow uses the staged workflow from `docs/testing-architecture.md`.
-- Backend CI must keep two layers: fast checks and DB-backed full-suite execution.
-- Repo docs should stay compact; prefer pointers over duplicated process text.
+- The testing contract lives in `docs/testing-architecture.md`.
+- Backend CI keeps two layers: fast checks and DB-backed full-suite execution.
+- Local rule files in `.claude/rules` must stay short and repository-specific.
 
-If process guidance is broadly reusable across repositories, move it to the external playbook repo instead of expanding this file.
+Do not copy the external playbook back into this repository.
