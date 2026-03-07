@@ -2,75 +2,18 @@
 
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.api.dependencies.auth import get_current_user
 from app.schemas.auth import UserOut
 from app.schemas.parse_create import (
     ParseAndCreateResponse,
     ParseErrorResponse,
     ParseRequest,
 )
-from app.services.auth_service import AuthService
 from app.services.parse_create_service import TransactionParseCreateService
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
-
-
-async def get_auth_service() -> AsyncGenerator[AuthService, None]:
-    """Get auth service with database session.
-
-    Yields:
-        AuthService instance.
-    """
-    from app.db.session import async_session_factory
-
-    async with async_session_factory() as session:
-        try:
-            yield AuthService(session)
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-
-
-async def get_current_user(
-    request: Request,
-    service: AuthService = Depends(get_auth_service),
-) -> UserOut:
-    """Get current user from Authorization header.
-
-    Args:
-        request: FastAPI request.
-        service: Auth service dependency.
-
-    Returns:
-        Current user schema.
-
-    Raises:
-        HTTPException: If authentication is invalid.
-    """
-    # Get token from Authorization header (Bearer token)
-    auth_header = request.headers.get("Authorization")
-    access_token = None
-
-    if auth_header and auth_header.startswith("Bearer "):
-        access_token = auth_header[7:]
-
-    if access_token is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    try:
-        return await service.get_current_user(access_token)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from e
 
 
 async def get_parse_create_service() -> AsyncGenerator[
@@ -111,7 +54,7 @@ async def parse_and_create(
     in the database.
 
     Args:
-        request: ParseRequest with free-form text.
+        request: ParseRequest with free-form text and target account.
         current_user: Authenticated user.
         service: Parse-create service dependency.
 
@@ -119,14 +62,21 @@ async def parse_and_create(
         ParseAndCreateResponse with created transaction details.
 
     Raises:
-        HTTPException 400: If amount cannot be extracted.
+        HTTPException 400: If amount cannot be extracted or account is missing.
         HTTPException 401: If not authenticated.
     """
+    if request.account_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="account_id is required until default account selection is implemented",
+        )
+
     try:
         return await service.parse_and_create(
             text=request.text,
             user_id=current_user.id,
-            account_id=current_user.id,  # Use user_id as account_id for now
+            account_id=request.account_id,
+            category_id=request.category_id,
         )
     except ValueError as e:
         raise HTTPException(

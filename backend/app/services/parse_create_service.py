@@ -7,10 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.types import TransactionType
 from app.repositories.transaction_repository import TransactionRepository
-from app.schemas.parse_create import (
-    ParseAndCreateResponse,
-    ParsedResult,
-)
+from app.schemas.parse_create import ParseAndCreateResponse, ParsedResult
 from app.services.parse_service import parse_text
 
 
@@ -47,23 +44,21 @@ class TransactionParseCreateService:
         Raises:
             ValueError: If amount cannot be extracted from text.
         """
-        # Parse the text
         parsed = parse_text(text)
 
-        # Validate that amount was extracted
         if parsed.amount is None:
             raise ValueError("Could not extract amount from text")
 
-        # Create the transaction
+        now = datetime.now(timezone.utc)
         transaction = await self.transaction_repo.create(
             user_id=user_id,
             account_id=account_id,
             amount=parsed.amount,
-            type_=TransactionType.EXPENSE,  # Default type for parse-and-create
-            date_accrual=datetime.now(timezone.utc),
-            date_cash=datetime.now(timezone.utc),
+            type_=TransactionType.EXPENSE,
+            date_accrual=now,
+            date_cash=now,
             category_id=category_id,
-            description=parsed.description or text,
+            description=parsed.original_text,
             is_reconciled=False,
         )
 

@@ -15,160 +15,30 @@ from decimal import Decimal
 
 from app.schemas.parse_create import ParsedResult
 
-# Regex patterns for amount extraction
-# Matches numbers optionally followed by decimals
 AMOUNT_PATTERN = re.compile(r"(\d+(?:[.,]\d{2})?)\s*(руб(?:лей)?|₽)?", re.IGNORECASE)
-
-# Currency keywords
 CURRENCY_KEYWORDS = {"руб", "рублей", "руб.", "₽"}
-
-# Common words that might indicate category or payee but not amount
-CATEGORY_INDICATORS = {
-    "продукты",
-    "продукт",
-    "супермаркет",
-    "супер",
-    "вкусвилл",
-    "фрукты",
-    "овощи",
-    "мясо",
-    "рыба",
-    "молоко",
-    "хлеб",
-    "кондитер",
-    "кондитерская",
-    "пекарня",
-    "кофе",
-    "кафе",
-    "ресторан",
-    "обед",
-    "ужин",
-    "завтрак",
-    "доставка",
-    "спецпредложение",
-    "каршеринг",
-    "такси",
-    "метро",
-    "автобус",
-    "трамвай",
-    "троллейбус",
-    "бензин",
-    "АЗС",
-    "машина",
-    "ремонт",
-    "авто",
-    "товары",
-    " техника",
-    "электроника",
-    "телефон",
-    "телефоны",
-    "одежда",
-    "обувь",
-    "магазин",
-    "сбермаркет",
-    "пятёрочка",
-    "перекрёсток",
-    "лента",
-    "магнит",
-    "афити",
-    "спорт",
-    "здоровье",
-    "аптека",
-    "врач",
-    "лекарство",
-    "коммуналка",
-    "квартплата",
-    "жкх",
-    "электричество",
-    "вода",
-    "газ",
-    "интернет",
-    "связь",
-    "телефония",
-    "абонентская",
-    "плата",
-    "услуга",
-    "сервис",
-    "подписка",
-    "стриминг",
-    "кино",
-    "фильмы",
-    "музыка",
-    "книги",
-    "книжный",
-    "бумага",
-    "канцелярия",
-    "хозяйственный",
-    "бытовой",
-    "химия",
-    "чистящий",
-    "порошок",
-    "шампунь",
-    "гель",
-    "мыло",
-    "туалет",
-    "салфетки",
-    "полотенце",
-    "мочалка",
-    "щетка",
-    "мытьё",
-    "прачечная",
-    "стирка",
-    "гладка",
-    "глажка",
-    "прачечный",
-    "техника",
-    "посуда",
-    "сковорода",
-    "кастрюля",
-    "ложка",
-    "вилка",
-    "нож",
-    "тарелка",
-    "стакан",
-    "чашка",
-    "блюдце",
-    "сервировка",
-    "праздник",
-    "подарок",
-    "цветы",
-    "принес",
-    "получил",
-    "зарплата",
-    "премия",
-    "бонус",
-    "выплата",
-    "аванс",
-    "возврат",
-    "возврат средств",
-    "комиссия",
-    "штраф",
-    "налог",
-    "страховка",
-    "страхование",
-    "вклад",
-    "депозит",
-    "процент",
-    "доход",
-    "инвестиция",
-    "акция",
-    "облигация",
-    "фонд",
-    "актив",
-    "деньги",
-    "наличные",
-    "карта",
-    "сбербанк",
-    "т-банк",
-    "киви",
-    "вайз",
-    "альфа",
-    "втб",
-    "газпром",
-    "сбер",
-    "сбермегаполис",
-    "тинькофф",
-}
+CATEGORY_KEYWORDS: tuple[tuple[str, str], ...] = (
+    ("продукты", "Продукты"),
+    ("вкусвилл", "Продукты"),
+    ("супермаркет", "Продукты"),
+    ("кофе", "Кофе"),
+    ("кафе", "Кофе"),
+    ("обед", "Рестораны"),
+    ("ресторан", "Рестораны"),
+    ("доставка", "Доставка"),
+    ("такси", "Такси"),
+    ("метро", "Транспорт"),
+    ("бензин", "Транспорт"),
+    ("аптека", "Здоровье"),
+    ("врач", "Здоровье"),
+    ("коммуналка", "Коммунальные услуги"),
+    ("интернет", "Коммунальные услуги"),
+    ("одежда", "Одежда"),
+    ("подарок", "Подарки"),
+    ("зарплата", "Доход"),
+    ("премия", "Доход"),
+    ("возврат", "Возврат"),
+)
 
 
 def extract_amount(text: str) -> Decimal | None:
@@ -185,12 +55,9 @@ def extract_amount(text: str) -> Decimal | None:
     Returns:
         Decimal amount if found, None otherwise.
     """
-    # First try to find amount with currency keyword
     match = AMOUNT_PATTERN.search(text)
     if match:
-        amount_str = match.group(1)
-        # Replace comma with dot for proper decimal parsing
-        amount_str = amount_str.replace(",", ".")
+        amount_str = match.group(1).replace(",", ".")
         try:
             return Decimal(amount_str)
         except Exception:
@@ -199,21 +66,18 @@ def extract_amount(text: str) -> Decimal | None:
 
 
 def extract_category(text: str) -> str | None:
-    """Extract category name from text using keyword matching.
+    """Extract category name from text using deterministic keyword mapping.
 
     Args:
         text: The text to parse.
 
     Returns:
-        Category name if detected, None otherwise.
+        Canonical category name if detected, None otherwise.
     """
     text_lower = text.lower()
-    for keyword in CATEGORY_INDICATORS:
-        if keyword in text_lower:
-            # Find the word and return it as-is (or capitalized)
-            match = re.search(rf"\b{re.escape(keyword)}\b", text_lower)
-            if match:
-                return match.group(0).capitalize()
+    for keyword, category_name in CATEGORY_KEYWORDS:
+        if re.search(rf"\b{re.escape(keyword)}\b", text_lower):
+            return category_name
     return None
 
 
@@ -229,12 +93,9 @@ def extract_description(text: str) -> str:
     Returns:
         Cleaned description text.
     """
-    # Remove amount patterns
     result = AMOUNT_PATTERN.sub("", text)
-    # Remove currency keywords that might remain
     for kw in CURRENCY_KEYWORDS:
         result = re.sub(rf"\b{re.escape(kw)}\b", "", result, flags=re.IGNORECASE)
-    # Clean up extra whitespace
     result = " ".join(result.split())
     return result.strip() if result.strip() else text
 

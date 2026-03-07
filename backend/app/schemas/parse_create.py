@@ -13,6 +13,12 @@ class ParseRequest(BaseModel):
     text: str
     """Free-form text to parse (e.g., 'продукты во вкусвилле 1500 рублей')."""
 
+    account_id: UUID | None = None
+    """Target account ID. Required until default account selection is implemented."""
+
+    category_id: UUID | None = None
+    """Optional category override. If omitted, transaction stays uncategorized."""
+
 
 class ParsedResult(BaseModel):
     """Result of parsing free-form text."""
@@ -65,7 +71,7 @@ class ParseAndCreateResponse(BaseModel):
     """Transaction type (inferred from context)."""
 
     description: str
-    """Description (original text or extracted)."""
+    """Description with original text preserved."""
 
     date_accrual: datetime
     """Accrual date."""

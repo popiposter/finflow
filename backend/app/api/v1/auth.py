@@ -1,9 +1,8 @@
 """Authentication API routes."""
 
-from typing import AsyncGenerator
-
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
+from app.api.dependencies.auth import get_auth_service, get_current_user
 from app.core.auth_cookies import (
     clear_auth_cookies,
     set_access_cookie,
@@ -22,68 +21,6 @@ from app.schemas.auth import (
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
-
-
-async def get_auth_service() -> AsyncGenerator[AuthService, None]:
-    """Get auth service with database session.
-
-    Yields:
-        AuthService instance.
-    """
-    from app.db.session import async_session_factory
-
-    async with async_session_factory() as session:
-        try:
-            yield AuthService(session)
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-
-
-async def get_current_user(
-    request: Request,
-    service: AuthService = Depends(get_auth_service),
-) -> UserOut:
-    """Get current user from access token cookie or Authorization header.
-
-    Args:
-        request: FastAPI request for accessing cookies.
-        service: Auth service dependency.
-
-    Returns:
-        Current user schema.
-
-    Raises:
-        HTTPException: If authentication is invalid.
-    """
-    # Try to get token from Authorization header first (Bearer token)
-    auth_header = request.headers.get("Authorization")
-    access_token = None
-
-    if auth_header and auth_header.startswith("Bearer "):
-        access_token = auth_header[7:]
-    else:
-        # Try to get from cookie
-        access_token = request.cookies.get("access_token")
-        if access_token and access_token.startswith("Bearer "):
-            access_token = access_token[7:]
-
-    if access_token is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    try:
-        return await service.get_current_user(access_token)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from e
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -203,11 +140,8 @@ async def logout(
     Returns:
         Logout confirmation.
     """
-    # Get refresh token from cookie
     refresh_token = request.cookies.get("refresh_token")
-    # Invalidate the refresh token on the server
     await service.logout(refresh_token)
-    # Clear cookies
     clear_auth_cookies(response)
     return {"message": "Logged out successfully"}
 
