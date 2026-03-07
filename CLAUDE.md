@@ -17,9 +17,30 @@ This file is the short contract for AI coding agents working in FinFlow. It shou
 - Add integration or API tests in a follow-up task.
 - Expand CI only when that heavier layer is ready.
 
+## Before pushing
+
+**Always run code quality checks before committing:**
+
+```bash
+cd backend
+ruff format .  # Format code
+ruff check .   # Lint
+mypy .         # Type check
+pytest tests/  # Run tests
+```
+
+Or install pre-commit hooks once:
+
+```bash
+pre-commit install
+```
+
+Then hooks run automatically on `git commit`.
+
 ## Hard constraints
 
 - Do not add test-only sync database paths into runtime application code.
 - Keep ORM models aligned with production migrations.
 - Prefer config-driven auth lifetimes over hardcoded durations.
 - Prefer editing an existing source-of-truth doc over creating another overlapping markdown file.
+- Do not push code that fails format check or linting.
