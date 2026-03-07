@@ -24,6 +24,7 @@ jobs:
               - 'backend/**'
               - '.github/workflows/ci.yml'
               - 'docs/testing-architecture.md'
+              - 'PLAYBOOK.md'
 
   backend-quick-checks:
     name: backend-quick-checks
