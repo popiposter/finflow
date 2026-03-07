@@ -1,36 +1,24 @@
-# FinFlow Backend
+# Backend
 
-Personal finance system backend.
+This folder contains the application code, migrations, and tests for the current FinFlow backend.
 
-## Development
+## Primary entry points
 
-Install dependencies:
-```bash
-python -m pip install -e .[dev]
-```
+- `app/` — FastAPI application code.
+- `alembic_migrations/` — schema migrations.
+- `tests/` — unit, integration, and API tests.
+- `pyproject.toml` — Python dependencies and tool configuration.
 
-Run migrations:
-```bash
-alembic upgrade head
-```
+## Developer flow
 
-Run tests:
-```bash
-pytest
-```
+- Implement feature code first.
+- Add unit or smoke tests unless the task explicitly asks for more.
+- Use `docs/testing-architecture.md` before changing fixtures, DB setup, or CI expectations.
+- Keep model definitions aligned with migrations.
 
-Run linter:
-```bash
-ruff check .
-```
+## CI alignment
 
-Type check:
-```bash
-mypy .
-```
+Backend CI has two layers:
 
-## Running the app
-
-```bash
-uvicorn app.main:app --reload
-```
+- Fast checks: Ruff, format check, and MyPy.
+- DB-backed checks: full `pytest tests/` with PostgreSQL.
