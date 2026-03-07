@@ -1,29 +1,27 @@
 # FinFlow
 
-FinFlow is a backend-first finance application under active bootstrap. The current branch adds the authentication foundation, stabilizes the backend CI pipeline, and introduces a staged testing workflow that is easier to use with AI-assisted development.
+FinFlow is a backend-first finance application under active bootstrap. The repository now uses a compact documentation layout so contributors can find the right source of truth quickly.
 
-## Source of truth
+## Start here
 
-Use these documents in this order:
+- `README.md` — project overview and navigation.
+- `backend/README.md` — backend developer entry point.
+- `CLAUDE.md` — short repository contract for AI agents.
+- `docs/README.md` — documentation map.
+- `docs/testing-architecture.md` — testing and CI rules.
+- `IMPLEMENTATION.md` — current delivery status.
+- `PLAYBOOK.md` — local pointer to the external private playbook.
 
-- `README.md` — project overview and document map.
-- `CLAUDE.md` — short repository instructions for AI coding agents.
-- `docs/README.md` — index of project documentation.
-- `docs/testing-architecture.md` — testing rules and CI expectations.
-- `IMPLEMENTATION.md` — current delivery status and next steps.
-- External playbook: [claude-github-dev-playbook](https://github.com/popiposter/claude-github-dev-playbook).
-
-## Current backend scope
+## Current scope
 
 - FastAPI backend skeleton.
 - Health endpoint and settings management.
-- Async SQLAlchemy and Alembic.
-- Authentication foundation: users, refresh sessions, API tokens, auth routes, and tests.
-- CI with fast checks plus full backend test execution.
+- Async SQLAlchemy, Alembic, and PostgreSQL-backed tests.
+- Authentication foundation with users, refresh sessions, API tokens, routes, and CI coverage.
 
-## Working conventions
+## Documentation policy
 
-- Keep feature tasks small and explicit.
-- Prefer feature code plus unit or smoke tests first.
-- Add integration or API coverage only in a follow-up task after review.
-- Keep runtime code free from test-only sync database paths.
+- Keep one primary file per topic.
+- Prefer short pointer docs over repeated guidance.
+- Move reusable process guidance to the external playbook repo.
+- Keep repository docs practical and current; delete or shrink stale prose instead of layering new prose on top.

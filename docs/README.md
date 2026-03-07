@@ -1,23 +1,24 @@
 # Documentation map
 
-Keep this file short. It exists to reduce duplication and show where each topic lives.
+Use this index to find the source of truth for each topic.
 
-## Core docs
+## Project docs
 
-- `README.md` — project overview.
-- `CLAUDE.md` — repository instructions for AI agents.
-- `IMPLEMENTATION.md` — current implementation status.
-- `docs/testing-architecture.md` — testing and CI rules.
-- `PLAYBOOK.md` — local summary and pointer to the external playbook repo.
+- `README.md` — project overview and quick navigation.
+- `IMPLEMENTATION.md` — current status and near-term roadmap.
+- `CLAUDE.md` — compact AI-agent contract.
+- `PLAYBOOK.md` — pointer to the external reusable playbook.
 
-## Supporting folders
+## Technical docs
 
-- `.github/README.md` — CI and automation notes.
-- `.claude/README.md` — local note about how to treat rules in `.claude/rules`.
-- `backend/README.md` — backend-specific developer entry point, if present.
+- `backend/README.md` — backend entry point.
+- `docs/testing-architecture.md` — test layers, fixture strategy, and CI expectations.
+- `.github/README.md` — GitHub automation scope.
+- `.claude/README.md` — local Claude rules policy.
+- `.claude/rules/README.md` — how to keep per-rule files small and non-duplicative.
 
-## Cleanup policy
+## Maintenance rules
 
-- Prefer one authoritative document per topic.
-- Use short pointer docs instead of copying the same guidance into many files.
-- When a document becomes outdated, either update it or reduce it to a pointer to the source of truth.
+- Do not duplicate the same process guidance across `README.md`, `CLAUDE.md`, and playbook files.
+- If a document is mostly navigation, keep it under one screen and turn it into an index.
+- If a rule applies across products, keep it in the external playbook repository.

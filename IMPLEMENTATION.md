@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Bootstrap backend plus authentication foundation, with CI now running fast static checks and the full backend test suite.
+Bootstrap backend plus authentication foundation, with CI running fast static checks and the full backend test suite.
 
 ## Completed
 
@@ -13,10 +13,11 @@ Bootstrap backend plus authentication foundation, with CI now running fast stati
 - PostgreSQL-backed tests and CI pipeline.
 - Authentication foundation: `User`, `ApiToken`, `RefreshSession`, auth service, auth routes, and tests.
 - Staged testing workflow documented for AI-assisted delivery.
+- Top-level repository docs reduced to a smaller source-of-truth structure.
 
 ## Next likely steps
 
-- Add token revocation and rotation refinements where needed.
 - Add domain features on top of authenticated user context.
-- Tighten repository-level docs as the product scope becomes clearer.
-- Split future issues into feature, review, integration/API coverage, and CI-enforcement stages.
+- Tighten auth behavior where product requirements become concrete.
+- Keep backend and docs entry points lightweight as the scope grows.
+- Split future issues into feature, review, integration or API coverage, and CI-enforcement stages.
