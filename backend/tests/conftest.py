@@ -22,7 +22,13 @@ def client(prepare_database: None) -> Generator[TestClient, None, None]:
 
 @pytest_asyncio.fixture
 async def prepare_database() -> AsyncGenerator[None, None]:
-    """Create database tables for an individual test and drop them afterwards."""
+    """Create database tables for an individual test and drop them afterwards.
+
+    The async engine is disposed before and after each test so pooled
+    asyncpg connections never leak across pytest event loops.
+    """
+    await engine.dispose()
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -30,6 +36,8 @@ async def prepare_database() -> AsyncGenerator[None, None]:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+    await engine.dispose()
 
 
 @pytest_asyncio.fixture

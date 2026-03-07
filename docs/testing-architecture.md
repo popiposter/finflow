@@ -27,6 +27,7 @@ The same categories of tests should work locally and in GitHub Actions without h
 - Use `async_session_factory` for async DB tests.
 - Prefer function-scoped DB schema setup unless a broader scope is truly necessary and explicitly supported by pytest-asyncio.
 - Keep fixture scopes simple and explicit; avoid hidden coupling between event-loop scope and database bootstrap scope.
+- Async engine pools are loop-sensitive; dispose the engine between tests when different pytest event loops may be involved.
 - Avoid mixing multiple competing app or bootstrap paths inside tests unless a specific isolation scenario requires it.
 - Clean database state in one shared place instead of per-file ad hoc helpers.
 

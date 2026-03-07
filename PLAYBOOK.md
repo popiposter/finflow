@@ -19,7 +19,7 @@ The expensive failure mode is not a small code defect; it is the agent spending 
 
 - Feature implementation tasks should say whether they stop at code plus unit or smoke coverage.
 - Integration or API test tasks should reference `docs/testing-architecture.md`.
-- If a task needs new services, containers, or CI dependencies, call that out explicitly.
+- If a task needs new services, containers, CI dependencies, or event-loop-sensitive DB setup, call that out explicitly.
 - Prefer small follow-up tasks over one huge prompt that mixes feature design, review response, CI expansion, and heavy test infrastructure.
 
 ## Expectations for issues
@@ -31,4 +31,5 @@ When writing or refining implementation issues, split them into stages:
 - Stage 3: integration or API coverage.
 - Stage 4: CI enforcement or workflow expansion.
 
+Use issue text that makes the stopping point explicit, for example: "Implement the feature and add unit or smoke tests only; integration/API tests will be a follow-up task after review."
 That staging keeps issues actionable for AI agents and makes it clear when a task is allowed to stop.
