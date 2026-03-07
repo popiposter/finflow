@@ -1,9 +1,9 @@
-"""API token model for iOS Shortcut authentication."""
+"""API token model for long-lived API authentication."""
 
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import func
+from sqlalchemy import ForeignKey, func
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -11,7 +11,7 @@ from app.db.base import Base
 
 
 class ApiToken(Base):
-    """API token model for long-lived API access (e.g., iOS Shortcuts)."""
+    """API token model for long-lived API access."""
 
     __tablename__ = "api_tokens"
 
@@ -21,6 +21,7 @@ class ApiToken(Base):
         server_default=func.gen_random_uuid(),
     )
     user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

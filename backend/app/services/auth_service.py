@@ -5,6 +5,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.security import (
     decode_token,
     generate_api_token,
@@ -44,12 +45,10 @@ class AuthService:
         Raises:
             ValueError: If email is already registered.
         """
-        # Check if email already exists
         existing = await self.user_repo.get_by_email(user_data.email)
         if existing is not None:
             raise ValueError("Email already registered")
 
-        # Hash password and create user
         hashed_password = hash_password(user_data.password)
         user = await self.user_repo.create(user_data.email, hashed_password)
 
@@ -77,12 +76,12 @@ class AuthService:
 
         access_token = self._create_access_token(user.id)
         refresh_token = self._create_refresh_token(user.id)
-        # Store refresh token hash for revocation
         refresh_token_hash = hash_password(refresh_token)
         await self.refresh_session_repo.create(
             user_id=user.id,
             token_hash=refresh_token_hash,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(timezone.utc)
+            + timedelta(days=settings.jwt_refresh_token_expire_days),
         )
 
         return access_token, refresh_token
@@ -99,12 +98,10 @@ class AuthService:
         Raises:
             ValueError: If the refresh token is invalid or revoked.
         """
-        # Get the refresh session by verifying the token against stored hashes
         session = await self.refresh_session_repo.get_by_token(refresh_token)
         if session is None:
             raise ValueError("Invalid refresh token")
 
-        # Revoke the old session (single-use for refresh tokens)
         await self.refresh_session_repo.revoke(session)
 
         user = await self.user_repo.get_by_id(session.user_id)
@@ -113,16 +110,13 @@ class AuthService:
 
         new_access_token = self._create_access_token(user.id)
         new_refresh_token = self._create_refresh_token(user.id)
-
-        # Create a new refresh session for the new token
-        from app.core.security import hash_password
-
         new_refresh_token_hash = hash_password(new_refresh_token)
 
         await self.refresh_session_repo.create(
             user_id=user.id,
             token_hash=new_refresh_token_hash,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(timezone.utc)
+            + timedelta(days=settings.jwt_refresh_token_expire_days),
         )
 
         return new_access_token, new_refresh_token
@@ -136,7 +130,6 @@ class AuthService:
         if refresh_token is None:
             return
 
-        # Get the refresh session by verifying the token against stored hashes
         session = await self.refresh_session_repo.get_by_token(refresh_token)
         if session is not None:
             await self.refresh_session_repo.revoke(session)
@@ -189,9 +182,7 @@ class AuthService:
         raw_token = generate_api_token()
         token_hash = hash_api_token(raw_token)
 
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            days=365,  # Default 1 year expiry
-        )
+        expires_at = datetime.now(timezone.utc) + timedelta(days=365)
 
         api_token = await self.api_token_repo.create(
             user_id=user_id,

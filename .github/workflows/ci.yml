@@ -3,100 +3,109 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
   detect-backend:
     runs-on: ubuntu-latest
     outputs:
-      backend_present: ${{ steps.detect.outputs.backend_present }}
+      backend_changed: ${{ steps.filter.outputs.backend }}
     steps:
-      - uses: actions/checkout@v4
-      - id: detect
-        shell: bash
-        run: |
-          if [ -f backend/pyproject.toml ]; then
-            echo "backend_present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "backend_present=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  # Fast checks - do not require Docker or PostgreSQL
+      - name: Detect backend changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+
   backend-quick-checks:
+    name: backend-quick-checks
     needs: detect-backend
-    if: needs.detect-backend.outputs.backend_present == 'true'
+    if: needs.detect-backend.outputs.backend_changed == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
-      - name: Install backend dependencies
+
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m pip install -e .[dev]
-      - name: Run Ruff linting
-        run: python -m ruff check .
-      - name: Run Ruff format check
-        run: python -m ruff format --check .
-      - name: Run mypy type checking
-        run: python -m mypy .
+          pip install -e . ruff mypy pytest pytest-asyncio pytest-cov asyncpg
 
-  # DB-dependent tests - require PostgreSQL
+      - name: Run Ruff lint
+        run: ruff check .
+
+      - name: Run Ruff format check
+        run: ruff format --check .
+
+      - name: Run MyPy
+        run: mypy app
+
   backend-db-tests:
+    name: backend-db-tests
     needs: detect-backend
-    if: needs.detect-backend.outputs.backend_present == 'true'
+    if: needs.detect-backend.outputs.backend_changed == 'true'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    # Use PostgreSQL service container for DB-dependent tests
     services:
       postgres:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: finflow
           POSTGRES_PASSWORD: finflow
-          POSTGRES_DB: finflow_test
+          POSTGRES_DB: finflow
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U finflow -d finflow"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+    env:
+      DATABASE_URL: postgresql+asyncpg://finflow:finflow@127.0.0.1:5432/finflow
+      JWT_SECRET_KEY: test-secret-key
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: '30'
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: '7'
+      DEBUG: 'false'
+    defaults:
+      run:
+        working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
-      - name: Install backend dependencies
+
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m pip install -e .[dev]
-      - name: Wait for PostgreSQL
-        run: |
-          until pg_isready -h localhost -p 5432 -U finflow; do
-            echo "Waiting for PostgreSQL..."
-            sleep 2
-          done
-      - name: Run integration tests (with PostgreSQL)
-        run: python -m pytest tests/integration/ -v
-        env:
-          DATABASE_URL: postgresql+asyncpg://finflow:finflow@localhost:5432/finflow_test
+          pip install -e . ruff mypy pytest pytest-asyncio pytest-cov asyncpg
+
+      - name: Run full backend test suite
+        run: pytest tests/
 
   no-backend-note:
+    name: no-backend-note
     needs: detect-backend
-    if: needs.detect-backend.outputs.backend_present != 'true'
+    if: needs.detect-backend.outputs.backend_changed != 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Backend not present yet
-        run: echo "backend/pyproject.toml not present yet; backend test job skipped."
+      - name: No backend changes detected
+        run: echo "No backend changes detected; backend CI jobs skipped."

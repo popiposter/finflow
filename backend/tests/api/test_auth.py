@@ -10,7 +10,9 @@ These tests verify that the auth endpoints work correctly:
 """
 
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
+
+from app.main import app
 
 pytestmark = pytest.mark.api
 
@@ -153,8 +155,6 @@ class TestRefreshEndpoint:
 
     async def test_refresh_token_rotation(self, async_client: AsyncClient) -> None:
         """Test that old refresh token is invalidated after rotation."""
-        from app.main import app
-
         await async_client.post(
             "/api/v1/auth/register",
             json={"email": "rotationuser@example.com", "password": "SecurePass123!"},
@@ -166,11 +166,9 @@ class TestRefreshEndpoint:
 
         refresh_token = login_response.cookies.get("refresh_token")
         assert refresh_token is not None
-+
+
         response = await async_client.post("/api/v1/auth/refresh")
         assert response.status_code == 200
-
-        from httpx import ASGITransport
 
         async with AsyncClient(
             transport=ASGITransport(app=app),
@@ -189,8 +187,6 @@ class TestLogoutEndpoint:
 
     async def test_logout_success(self, async_client: AsyncClient) -> None:
         """Test successful logout."""
-        from app.main import app
-
         await async_client.post(
             "/api/v1/auth/register",
             json={"email": "logoutuser@example.com", "password": "SecurePass123!"},
@@ -208,8 +204,6 @@ class TestLogoutEndpoint:
         assert logout_response.status_code == 200
         data = logout_response.json()
         assert data["message"] == "Logged out successfully"
-
-        from httpx import ASGITransport
 
         async with AsyncClient(
             transport=ASGITransport(app=app),
