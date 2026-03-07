@@ -1,35 +1,19 @@
-# Playbook
+# PLAYBOOK.md
 
-## AI delivery workflow
+This file is a local pointer, not the full process manual.
 
-Use this default workflow for Claude-driven implementation tasks:
+## Source of truth
 
-1. Ship feature code first.
-2. Add unit or smoke tests that validate the core path.
-3. Stop and request review before building integration or API test scaffolding.
-4. After review, run a separate explicit task for integration and API tests.
-5. Update CI only when the heavier test layer is ready to be enforced.
+The main playbook now lives in the private repository:
 
-## Why this exists
+- `popiposter/claude-github-dev-playbook`
 
-This repository optimizes for fast iteration with Claude Code and auto-push.
-The expensive failure mode is not a small code defect; it is the agent spending hours growing an over-complex test harness before the feature direction is validated.
+## What stays local
 
-## Expectations for tasks
+Only repository-specific deltas should stay here:
 
-- Feature implementation tasks should say whether they stop at code plus unit or smoke coverage.
-- Integration or API test tasks should reference `docs/testing-architecture.md`.
-- If a task needs new services, containers, CI dependencies, or event-loop-sensitive DB setup, call that out explicitly.
-- Prefer small follow-up tasks over one huge prompt that mixes feature design, review response, CI expansion, and heavy test infrastructure.
+- FinFlow uses the staged workflow from `docs/testing-architecture.md`.
+- Backend CI must keep two layers: fast checks and DB-backed full-suite execution.
+- Repo docs should stay compact; prefer pointers over duplicated process text.
 
-## Expectations for issues
-
-When writing or refining implementation issues, split them into stages:
-
-- Stage 1: feature behavior and minimal test proof.
-- Stage 2: review-driven fixes.
-- Stage 3: integration or API coverage.
-- Stage 4: CI enforcement or workflow expansion.
-
-Use issue text that makes the stopping point explicit, for example: "Implement the feature and add unit or smoke tests only; integration/API tests will be a follow-up task after review."
-That staging keeps issues actionable for AI agents and makes it clear when a task is allowed to stop.
+If process guidance is broadly reusable across repositories, move it to the external playbook repo instead of expanding this file.

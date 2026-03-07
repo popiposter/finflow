@@ -1,103 +1,26 @@
 # CLAUDE.md
 
-## Project purpose
-FinFlow is a personal finance system focused on:
-- actual expenses and income
-- planned and recurring payments
-- credit card lifecycle tracking
-- BDR/P&L style reporting by accrual date
-- BDDS/cashflow reporting by cash movement date
-- iOS Shortcut ingestion of free-form text that backend parses into structured transactions
+This file is intentionally short. It gives AI coding agents the minimum repository-specific contract and points them to the real source documents.
 
-## Fixed stack
-- Python 3.12+
-- FastAPI
-- SQLAlchemy 2.x async
-- Alembic
-- PostgreSQL
-- Pydantic v2
-- pwdlib for password hashing
-- PyJWT for JWT creation/validation
-- pytest + pytest-asyncio/anyio + httpx for tests
+## Default workflow
 
-## Architecture rules
-- Keep clear layers: api -> services -> repositories -> db/models.
-- API routes must not contain business logic.
-- Services orchestrate use-cases.
-- Repositories encapsulate database access.
-- Pydantic schemas stay separate from SQLAlchemy models.
-- Use async database access everywhere.
-- Prefer explicit types and small functions.
+1. Implement the feature.
+2. Add unit or smoke tests only unless the task explicitly asks for heavier coverage.
+3. Stop for review.
+4. Add integration or API tests in a follow-up task.
+5. Expand CI only when that heavier test layer is ready.
 
-## Security rules
-- Never store plain-text passwords.
-- Store only password hashes.
-- Access and refresh tokens for web auth must be issued by backend and delivered via HttpOnly Secure cookies.
-- Long-lived API tokens for iOS Shortcut must be shown once and stored only as hashes in the database.
-- Do not log secrets, tokens, passwords, or raw authorization headers.
+## Source documents
 
-## Local knowledge base
-Before searching the web, read local repo guidance:
-1. `IMPLEMENTATION.md`
-2. `docs/agent/README.md`
-3. `.claude/rules/*.md`
-4. `docs/snippets/*.md`
-5. `docs/spec/*.md`
+- Project overview: `README.md`
+- Docs index: `docs/README.md`
+- Testing rules: `docs/testing-architecture.md`
+- Current scope and status: `IMPLEMENTATION.md`
+- External process playbook: `https://github.com/popiposter/claude-github-dev-playbook`
 
-When implementing a feature, prefer local repo guidance and examples over ad-hoc web search.
-If local guidance is missing, add it as part of the change when the feature introduces a new pattern.
+## Repository constraints
 
-## GitHub workflow rules
-- For GitHub issues and pull requests, prefer GitHub CLI over web fetch.
-- Use `gh issue view <number> --repo popiposter/finflow --json number,title,body,url` to retrieve issue context.
-- Use `gh pr view <number> --repo popiposter/finflow --json number,title,body,url` to retrieve PR context when needed.
-- Do not fetch GitHub issue or PR URLs through web tools when `gh` can provide the same information.
-
-## Repo hygiene rules
-- Never commit generated artifacts such as `__pycache__/`, `*.pyc`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.venv/`, or local IDE/system files.
-- Before finalizing a task, inspect `git status` and remove generated files from the diff.
-- Keep each branch scoped to the current issue; do not partially implement future roadmap issues unless explicitly approved.
-- If CI is still a placeholder or partial workflow, state that clearly in the final report instead of implying full validation passed.
-
-## Working rules for Claude Code
-- Before implementing a feature, read this file and IMPLEMENTATION.md.
-- Update IMPLEMENTATION.md before and after significant work.
-- For medium/large tasks, first produce a short implementation plan, then execute it.
-- Do not introduce alternative frameworks or libraries without explicit approval.
-- Do not rewrite unrelated files.
-- Preserve architecture consistency.
-- When completing a task, summarize changed files, tests, and follow-up risks.
-
-## Backend layout
-```text
-backend/
-  app/
-    api/
-      v1/
-    core/
-    db/
-    models/
-    repositories/
-    schemas/
-    services/
-    tasks/
-  tests/
-    api/
-    integration/
-    unit/
-```
-
-## Testing policy
-- New business logic requires unit tests.
-- New endpoints require API tests.
-- Repository behavior that depends on SQL should have integration tests.
-- Write or update tests in the same change as production code.
-- Prefer happy-path tests first, then add authorization, validation, and edge cases.
-- Do not close an issue if required tests are missing.
-
-## Delivery policy
-For each implemented feature, provide:
-1. summary of changed files
-2. key design decisions
-3. commands to run formatters/tests
-4. remaining risks or TODOs
+- Do not add test-only sync database paths into runtime application code.
+- Keep ORM models aligned with production migrations.
+- Prefer config-driven auth lifetimes over hardcoded durations.
+- Keep documentation compact and avoid duplicating the same rules across many files.
