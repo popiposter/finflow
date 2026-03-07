@@ -210,7 +210,7 @@ class TestTransactionModel:
             amount=100.00,
             type=TransactionType.PAYMENT,
             date_accrual=yesterday,  # Accrual date (yesterday)
-            date_cash=now,           # Cash date (today)
+            date_cash=now,  # Cash date (today)
         )
 
         assert transaction.date_accrual < transaction.date_cash

@@ -26,9 +26,7 @@ def upgrade() -> None:
         "CREATE TYPE account_type AS ENUM ('checking', 'savings', 'credit_card', "
         "'cash', 'investment', 'loan', 'other')"
     )
-    op.execute(
-        "CREATE TYPE category_type AS ENUM ('income', 'expense')"
-    )
+    op.execute("CREATE TYPE category_type AS ENUM ('income', 'expense')")
     op.execute(
         "CREATE TYPE transaction_type AS ENUM ('payment', 'refund', 'transfer', "
         "'income', 'expense', 'adjustment')"
@@ -67,7 +65,9 @@ def upgrade() -> None:
     )
     op.create_index("ix_accounts_user_id", "accounts", ["user_id"], unique=False)
     op.create_index("ix_accounts_type", "accounts", ["type"], unique=False)
-    op.create_index("ix_accounts_currency_code", "accounts", ["currency_code"], unique=False)
+    op.create_index(
+        "ix_accounts_currency_code", "accounts", ["currency_code"], unique=False
+    )
     op.create_index("ix_accounts_is_active", "accounts", ["is_active"], unique=False)
     op.create_index("ix_accounts_name", "accounts", ["name"], unique=False)
 
@@ -94,8 +94,12 @@ def upgrade() -> None:
     )
     op.create_index("ix_categories_user_id", "categories", ["user_id"], unique=False)
     op.create_index("ix_categories_type", "categories", ["type"], unique=False)
-    op.create_index("ix_categories_parent_id", "categories", ["parent_id"], unique=False)
-    op.create_index("ix_categories_is_active", "categories", ["is_active"], unique=False)
+    op.create_index(
+        "ix_categories_parent_id", "categories", ["parent_id"], unique=False
+    )
+    op.create_index(
+        "ix_categories_is_active", "categories", ["is_active"], unique=False
+    )
     op.create_index("ix_categories_name", "categories", ["name"], unique=False)
 
     # Transactions table
@@ -130,20 +134,41 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["category_id"], ["categories.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(
+            ["category_id"], ["categories.id"], ondelete="SET NULL"
+        ),
         sa.ForeignKeyConstraint(
             ["counterparty_account_id"], ["accounts.id"], ondelete="SET NULL"
         ),
     )
-    op.create_index("ix_transactions_user_id", "transactions", ["user_id"], unique=False)
-    op.create_index("ix_transactions_account_id", "transactions", ["account_id"], unique=False)
-    op.create_index("ix_transactions_category_id", "transactions", ["category_id"], unique=False)
-    op.create_index("ix_transactions_counterparty_account_id", "transactions", ["counterparty_account_id"], unique=False)
+    op.create_index(
+        "ix_transactions_user_id", "transactions", ["user_id"], unique=False
+    )
+    op.create_index(
+        "ix_transactions_account_id", "transactions", ["account_id"], unique=False
+    )
+    op.create_index(
+        "ix_transactions_category_id", "transactions", ["category_id"], unique=False
+    )
+    op.create_index(
+        "ix_transactions_counterparty_account_id",
+        "transactions",
+        ["counterparty_account_id"],
+        unique=False,
+    )
     op.create_index("ix_transactions_type", "transactions", ["type"], unique=False)
-    op.create_index("ix_transactions_date_accrual", "transactions", ["date_accrual"], unique=False)
-    op.create_index("ix_transactions_date_cash", "transactions", ["date_cash"], unique=False)
-    op.create_index("ix_transactions_statement_id", "transactions", ["statement_id"], unique=False)
-    op.create_index("ix_transactions_is_reconciled", "transactions", ["is_reconciled"], unique=False)
+    op.create_index(
+        "ix_transactions_date_accrual", "transactions", ["date_accrual"], unique=False
+    )
+    op.create_index(
+        "ix_transactions_date_cash", "transactions", ["date_cash"], unique=False
+    )
+    op.create_index(
+        "ix_transactions_statement_id", "transactions", ["statement_id"], unique=False
+    )
+    op.create_index(
+        "ix_transactions_is_reconciled", "transactions", ["is_reconciled"], unique=False
+    )
 
 
 def downgrade() -> None:
