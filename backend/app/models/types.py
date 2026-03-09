@@ -83,6 +83,33 @@ class Recurrence(StrEnum):
     MONTHLY = "monthly"
 
 
+class ProjectedTransactionStatus(StrEnum):
+    """Status of a projected transaction.
+
+    - PENDING: Initial state, user can edit, confirm, or skip
+    - CONFIRMED: Transaction has been created, projection is complete
+    - SKIPPED: Projection was skipped, no transaction created
+    """
+
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    SKIPPED = "skipped"
+
+
+class ProjectedTransactionType(StrEnum):
+    """Types of projected transactions.
+
+    MVP supports INCOME and EXPENSE only (no TRANSFER).
+    """
+
+    INCOME = "income"
+    EXPENSE = "expense"
+
+
+# Note: ProjectedTransactionType values match TransactionType values
+# for income and expense, enabling direct type conversion
+
+
 # Common validation constants
 MAX_ACCOUNT_NAME_LENGTH = 100
 MAX_CATEGORY_NAME_LENGTH = 100
@@ -91,3 +118,20 @@ MAX_TRANSACTION_DESCRIPTION_LENGTH = 500
 # Precision for money calculations
 MONEY_DECIMAL_PLACES = 2
 MONEY_MAX_DIGITS = 18
+
+# Exports
+__all__ = [
+    "AccountType",
+    "CategoryType",
+    "TransactionType",
+    "Recurrence",
+    "ProjectedTransactionStatus",
+    "ProjectedTransactionType",
+    "Money",
+    "MONEY_TYPE",
+    "MAX_ACCOUNT_NAME_LENGTH",
+    "MAX_CATEGORY_NAME_LENGTH",
+    "MAX_TRANSACTION_DESCRIPTION_LENGTH",
+    "MONEY_DECIMAL_PLACES",
+    "MONEY_MAX_DIGITS",
+]

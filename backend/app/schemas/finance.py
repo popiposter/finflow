@@ -7,7 +7,14 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.models.types import AccountType, CategoryType, Recurrence, TransactionType
+from app.models.types import (
+    AccountType,
+    CategoryType,
+    ProjectedTransactionStatus,
+    ProjectedTransactionType,
+    Recurrence,
+    TransactionType,
+)
 
 
 class AccountBase(BaseModel):
@@ -223,3 +230,70 @@ class CashflowReportResponse(BaseModel):
     totals_by_category: list[ReportCategoryTotal]
     totals_by_type: list[ReportTypeTotal]
     grand_total: Decimal
+
+
+# === Projected Transaction Schemas ===
+
+
+class ProjectedTransactionBase(BaseModel):
+    """Base projected transaction schema."""
+
+    planned_payment_id: UUID
+    origin_date: date
+    origin_amount: Decimal
+    origin_description: str | None = None
+    origin_category_id: UUID | None = None
+    type: ProjectedTransactionType
+
+
+class ProjectedTransactionCreate(ProjectedTransactionBase):
+    """Schema for projected transaction creation."""
+
+
+class ProjectedTransactionOut(BaseModel):
+    """Schema for projected transaction responses."""
+
+    id: UUID
+    planned_payment_id: UUID
+    origin_date: date
+    origin_amount: Decimal
+    origin_description: str | None
+    origin_category_id: UUID | None
+    type: ProjectedTransactionType
+    projected_date: date
+    projected_amount: Decimal
+    projected_description: str | None
+    projected_category_id: UUID | None
+    status: ProjectedTransactionStatus
+    transaction_id: UUID | None
+    resolved_at: datetime | None
+    version: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ProjectedTransactionUpdate(BaseModel):
+    """Schema for updating a projected transaction."""
+
+    projected_amount: Decimal | None = None
+    projected_date: date | None = None
+    projected_description: str | None = None
+    projected_category_id: UUID | None = None
+
+
+class ProjectedTransactionConfirmRequest(BaseModel):
+    """Schema for confirming a projected transaction with optional overrides."""
+
+    amount: Decimal | None = None
+    date: date | None = None
+    description: str | None = None
+    category_id: UUID | None = None
+
+
+class ProjectedTransactionConfirmResponse(BaseModel):
+    """Response for confirming a projected transaction."""
+
+    projected_transaction: ProjectedTransactionOut
+    transaction_id: UUID
