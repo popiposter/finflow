@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Backend feature foundation is in place: authentication, core finance domain, parse-and-create ingestion, planned payments, reporting Stage 1, and finance CRUD Stage 3 for accounts, categories, and transactions.
+Backend feature foundation is in place: authentication, core finance domain, parse-and-create ingestion, planned payments, projected transactions, reporting Stage 1, and finance CRUD Stage 3 for accounts, categories, and transactions.
 
 ## Completed
 
@@ -15,6 +15,7 @@ Backend feature foundation is in place: authentication, core finance domain, par
 - Core finance domain: accounts, categories, transactions, repositories, schemas, and migrations.
 - Transaction ingestion from free-form text with authenticated parse-and-create flow.
 - Planned payments Stage 1: model, CRUD, recurring generation, source-linked generated transactions, and idempotency protection.
+- Projected transactions Stage 1: model with status lifecycle, forecast layer between planned payments and transactions, and API endpoints for projection management.
 - Reporting Stage 1: `GET /api/v1/reports/pnl`, `GET /api/v1/reports/cashflow`, aggregation services, grouping support, and smoke coverage.
 - Finance CRUD Stage 3: CRUD endpoints for accounts, categories, and transactions, plus repository and API coverage.
 - Category hierarchy validation and accrual-vs-cash transaction behavior coverage.
@@ -22,7 +23,7 @@ Backend feature foundation is in place: authentication, core finance domain, par
 
 ## Next likely steps
 
-- Scheduler-facing planned-payment execution flow.
+- Scheduler-facing planned-payment execution flow (Issue #18 dependency).
 - Reporting refinement after product feedback on response shapes and aggregation semantics.
 - Additional API and integration coverage only where the roadmap explicitly calls for it.
 - Keep process guidance compact and prefer scripts plus docs over long ritual prompts.

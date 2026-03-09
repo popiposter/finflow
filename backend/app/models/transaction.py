@@ -10,10 +10,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.planned_payment import PlannedPayment
+from app.models.projected_transaction import ProjectedTransaction
 from app.models.types import MONEY_TYPE, Money, TransactionType
 
 if TYPE_CHECKING:
     from app.models.planned_payment import PlannedPayment
+    from app.models.projected_transaction import ProjectedTransaction
 
 
 class Transaction(Base):
@@ -82,6 +84,16 @@ class Transaction(Base):
     # Relationship to source planned payment
     planned_payment: Mapped[PlannedPayment | None] = relationship(
         back_populates="transactions",
+    )
+    # Source projected transaction for forecast layer (optional)
+    projected_transaction_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("projected_transactions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    # Relationship to source projected transaction
+    projected_transaction: Mapped[ProjectedTransaction | None] = relationship(
+        back_populates="transaction",
     )
     # Amount as positive Decimal (direction determined by type + account type)
     amount: Mapped[Money] = mapped_column(

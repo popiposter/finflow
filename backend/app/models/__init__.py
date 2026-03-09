@@ -4,6 +4,7 @@ from app.models.account import Account
 from app.models.api_token import ApiToken
 from app.models.category import Category
 from app.models.planned_payment import PlannedPayment
+from app.models.projected_transaction import ProjectedTransaction
 from app.models.refresh_session import RefreshSession
 from app.models.transaction import Transaction
 from app.models.types import (
@@ -29,12 +30,15 @@ __all__ = [
     "Account",
     "Category",
     "PlannedPayment",
+    "ProjectedTransaction",
     "Transaction",
     # Types and enums
     "AccountType",
     "CategoryType",
     "Recurrence",
     "TransactionType",
+    "ProjectedTransactionStatus",
+    "ProjectedTransactionType",
     "Money",
     "MONEY_TYPE",
     # Validation constants
