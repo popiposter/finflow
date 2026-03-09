@@ -19,23 +19,25 @@ This file is the short contract for AI coding agents working in FinFlow. It shou
 
 ## Before pushing
 
-**Always run code quality checks before committing:**
+**Use the repo scripts and keep the git tree clean:**
 
 ```bash
-cd backend
-ruff format .  # Format code
-ruff check .   # Lint
-mypy .         # Type check
-pytest tests/  # Run tests
+# Bash
+./scripts/dev/check-backend.sh
+./scripts/dev/assert-clean-git.sh
 ```
 
-Or install pre-commit hooks once:
-
-```bash
-pre-commit install
+```powershell
+# PowerShell
+./scripts/dev/check-backend.ps1
+./scripts/dev/assert-clean-git.ps1
 ```
 
-Then hooks run automatically on `git commit`.
+If `pre-commit` or a formatter modifies files:
+1. Review the diff.
+2. `git add -A`
+3. `git commit --amend --no-edit` (or a small follow-up commit)
+4. Re-run the checks.
 
 ## Hard constraints
 
@@ -44,3 +46,5 @@ Then hooks run automatically on `git commit`.
 - Prefer config-driven auth lifetimes over hardcoded durations.
 - Prefer editing an existing source-of-truth doc over creating another overlapping markdown file.
 - Do not push code that fails format check or linting.
+- Do not use `git push --no-verify` in normal feature work.
+- Treat GitHub checks as the source of truth after push.
