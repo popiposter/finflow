@@ -1,5 +1,6 @@
 """Category repository for database access."""
 
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -119,7 +120,9 @@ class CategoryRepository:
         """
         await self.session.flush()
         await self.session.refresh(category)
-        return category
+        # Re-fetch to ensure we have the latest data after commit
+        updated = await self.get_by_id(category.id)
+        return cast(Category, updated)
 
     async def delete(self, category: Category) -> None:
         """Delete a category.

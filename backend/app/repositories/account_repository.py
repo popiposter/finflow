@@ -1,5 +1,6 @@
 """Account repository for database access."""
 
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -74,7 +75,9 @@ class AccountRepository:
         """
         await self.session.flush()
         await self.session.refresh(account)
-        return account
+        # Re-fetch to ensure we have the latest data after commit
+        updated = await self.get_by_id(account.id)
+        return cast(Account, updated)
 
     async def delete(self, account: Account) -> None:
         """Delete an account.

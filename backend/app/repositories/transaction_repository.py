@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from decimal import Decimal
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -163,7 +164,10 @@ class TransactionRepository:
             The updated transaction.
         """
         await self.session.flush()
-        return transaction
+        await self.session.refresh(transaction)
+        # Re-fetch to ensure we have the latest data after commit
+        updated = await self.get_by_id(transaction.id)
+        return cast(Transaction, updated)
 
     async def delete(self, transaction: Transaction) -> None:
         """Delete a transaction.
