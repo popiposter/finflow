@@ -1,4 +1,4 @@
-"""Planned payments API routes."""
+"""Planned payment API routes."""
 
 from datetime import date
 from typing import AsyncGenerator
@@ -21,13 +21,13 @@ from app.services.planned_payments_executor import PlannedPaymentsExecutor
 router = APIRouter(prefix="/planned-payments", tags=["planned-payments"])
 
 
-async def get_planned_payment_repo(
-    user: UserOut = Depends(get_current_user),
+async def get_repo(
+    current_user: UserOut = Depends(get_current_user),
 ) -> AsyncGenerator[PlannedPaymentRepository, None]:
     """Get planned payment repository with database session.
 
     Args:
-        user: Current authenticated user.
+        current_user: Current authenticated user.
 
     Yields:
         PlannedPaymentRepository instance.
@@ -43,9 +43,7 @@ async def get_planned_payment_repo(
             raise
 
 
-async def get_generation_service() -> AsyncGenerator[
-    PlannedPaymentGenerationService, None
-]:
+async def get_generation_service() -> AsyncGenerator[PlannedPaymentGenerationService, None]:
     """Get generation service with database session.
 
     Yields:
@@ -92,7 +90,7 @@ async def get_executor(
 async def create_planned_payment(
     payment_data: PlannedPaymentCreate,
     current_user: UserOut = Depends(get_current_user),
-    repo: PlannedPaymentRepository = Depends(get_planned_payment_repo),
+    repo: PlannedPaymentRepository = Depends(get_repo),
 ) -> PlannedPaymentOut:
     """Create a new planned payment.
 
@@ -103,9 +101,6 @@ async def create_planned_payment(
 
     Returns:
         Created planned payment.
-
-    Raises:
-        HTTPException 400: If validation fails.
     """
     payment = await repo.create(
         user_id=current_user.id,
@@ -119,7 +114,6 @@ async def create_planned_payment(
         end_date=payment_data.end_date,
         is_active=payment_data.is_active,
     )
-
     return PlannedPaymentOut.model_validate(payment)
 
 
@@ -129,7 +123,7 @@ async def create_planned_payment(
 )
 async def list_planned_payments(
     current_user: UserOut = Depends(get_current_user),
-    repo: PlannedPaymentRepository = Depends(get_planned_payment_repo),
+    repo: PlannedPaymentRepository = Depends(get_repo),
 ) -> list[PlannedPaymentOut]:
     """List all active planned payments for the current user.
 
@@ -138,25 +132,25 @@ async def list_planned_payments(
         repo: Planned payment repository dependency.
 
     Returns:
-        List of active planned payments.
+        List of active planned payments owned by the user.
     """
     payments = await repo.get_active_by_user(current_user.id)
     return [PlannedPaymentOut.model_validate(p) for p in payments]
 
 
 @router.get(
-    "/{payment_id}",
+    "/{planned_payment_id}",
     response_model=PlannedPaymentOut,
 )
 async def get_planned_payment(
-    payment_id: str,
+    planned_payment_id: str,
     current_user: UserOut = Depends(get_current_user),
-    repo: PlannedPaymentRepository = Depends(get_planned_payment_repo),
+    repo: PlannedPaymentRepository = Depends(get_repo),
 ) -> PlannedPaymentOut:
     """Get a specific planned payment by ID.
 
     Args:
-        payment_id: The planned payment's UUID (as string).
+        planned_payment_id: The planned payment's UUID (as string).
         current_user: Authenticated user.
         repo: Planned payment repository dependency.
 
@@ -168,10 +162,10 @@ async def get_planned_payment(
     """
     from uuid import UUID
 
-    payment_id_uuid = UUID(payment_id)
-    payment = await repo.get_by_user_and_id(current_user.id, payment_id_uuid)
+    payment_id = UUID(planned_payment_id)
+    payment = await repo.get_by_id(payment_id)
 
-    if payment is None:
+    if payment is None or payment.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Planned payment not found",
@@ -181,19 +175,19 @@ async def get_planned_payment(
 
 
 @router.put(
-    "/{payment_id}",
+    "/{planned_payment_id}",
     response_model=PlannedPaymentOut,
 )
 async def update_planned_payment(
-    payment_id: str,
+    planned_payment_id: str,
     payment_data: PlannedPaymentCreate,
     current_user: UserOut = Depends(get_current_user),
-    repo: PlannedPaymentRepository = Depends(get_planned_payment_repo),
+    repo: PlannedPaymentRepository = Depends(get_repo),
 ) -> PlannedPaymentOut:
     """Update a planned payment.
 
     Args:
-        payment_id: The planned payment's UUID (as string).
+        planned_payment_id: The planned payment's UUID (as string).
         payment_data: Planned payment update data.
         current_user: Authenticated user.
         repo: Planned payment repository dependency.
@@ -206,42 +200,42 @@ async def update_planned_payment(
     """
     from uuid import UUID
 
-    payment_id_uuid = UUID(payment_id)
-    payment = await repo.get_by_user_and_id(current_user.id, payment_id_uuid)
+    payment_id = UUID(planned_payment_id)
+    payment = await repo.get_by_id(payment_id)
 
-    if payment is None:
+    if payment is None or payment.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Planned payment not found",
         )
 
-    # Update fields
     payment.account_id = payment_data.account_id
-    payment.category_id = payment_data.category_id
     payment.amount = payment_data.amount
-    payment.description = payment_data.description
     payment.recurrence = payment_data.recurrence
     payment.start_date = payment_data.start_date
+    payment.next_due_at = payment_data.next_due_at or payment_data.start_date
+    payment.category_id = payment_data.category_id
+    payment.description = payment_data.description
     payment.end_date = payment_data.end_date
     payment.is_active = payment_data.is_active
 
-    await repo.update(payment)
-    return PlannedPaymentOut.model_validate(payment)
+    updated = await repo.update(payment)
+    return PlannedPaymentOut.model_validate(updated)
 
 
 @router.delete(
-    "/{payment_id}",
+    "/{planned_payment_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_planned_payment(
-    payment_id: str,
+    planned_payment_id: str,
     current_user: UserOut = Depends(get_current_user),
-    repo: PlannedPaymentRepository = Depends(get_planned_payment_repo),
+    repo: PlannedPaymentRepository = Depends(get_repo),
 ) -> None:
-    """Delete a planned payment (soft delete via is_active=false).
+    """Soft-delete a planned payment by deactivating it.
 
     Args:
-        payment_id: The planned payment's UUID (as string).
+        planned_payment_id: The planned payment's UUID (as string).
         current_user: Authenticated user.
         repo: Planned payment repository dependency.
 
@@ -250,10 +244,10 @@ async def delete_planned_payment(
     """
     from uuid import UUID
 
-    payment_id_uuid = UUID(payment_id)
-    payment = await repo.get_by_user_and_id(current_user.id, payment_id_uuid)
+    payment_id = UUID(planned_payment_id)
+    payment = await repo.get_by_id(payment_id)
 
-    if payment is None:
+    if payment is None or payment.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Planned payment not found",
@@ -267,26 +261,22 @@ async def delete_planned_payment(
     response_model=list[RecurrenceGenerationResult],
 )
 async def generate_transactions(
-    generation_service: PlannedPaymentGenerationService = Depends(
-        get_generation_service
-    ),
+    current_user: UserOut = Depends(get_current_user),
+    service: PlannedPaymentGenerationService = Depends(get_generation_service),
     as_of_date: date | None = None,
 ) -> list[RecurrenceGenerationResult]:
-    """Generate transactions for all due planned payments.
-
-    This endpoint finds all active planned payments that are due as of
-    the given date and creates corresponding transactions. It updates
-    the next_due_at date for each planned payment to the next computed
-    occurrence date.
+    """Generate due transactions for the current user's planned payments.
 
     Args:
-        generation_service: Generation service dependency.
-        as_of_date: Optional date to check due payments for. Defaults to today.
+        current_user: Authenticated user.
+        service: Planned payment generation service dependency.
+        as_of_date: Optional date to generate up to. Defaults to today.
 
     Returns:
-        List of generation results for each planned payment processed.
+        Generation results for each processed planned payment.
     """
-    results = await generation_service.generate_due_transactions(
+    results = await service.generate_due_transactions(
+        user_id=current_user.id,
         as_of_date=as_of_date,
     )
     return results
@@ -299,7 +289,7 @@ async def generate_transactions(
 async def execute_due_payments(
     current_user: UserOut = Depends(get_current_user),
     executor: PlannedPaymentsExecutor = Depends(get_executor),
-    request: PlannedPaymentExecutionRequest = Body(...),
+    request: PlannedPaymentExecutionRequest | None = Body(default=None),
 ) -> PlannedPaymentExecutionSummary:
     """Execute generation for all due planned payments.
 
@@ -310,12 +300,16 @@ async def execute_due_payments(
     Args:
         current_user: Authenticated user (used for tenant scoping).
         executor: Executor service dependency.
-        request: Execution parameters (as_of_date, max_occurrences).
+        request: Optional execution parameters.
 
     Returns:
         Execution summary with total counts and per-payment details.
     """
+    execution_request = request or PlannedPaymentExecutionRequest()
     return await executor.execute_due_payments(
-        as_of_date=request.as_of_date,
-        max_occurrences=request.max_occurrences,
+        as_of_date=execution_request.as_of_date,
+        max_occurrences=execution_request.max_occurrences,
     )
+
+
+__all__ = ["router"]
