@@ -10,10 +10,12 @@ from app.repositories.planned_payment_repository import PlannedPaymentRepository
 from app.schemas.auth import UserOut
 from app.schemas.finance import (
     PlannedPaymentCreate,
+    PlannedPaymentExecutionSummary,
     PlannedPaymentOut,
     RecurrenceGenerationResult,
 )
 from app.services.planned_payment_service import PlannedPaymentGenerationService
+from app.services.planned_payments_executor import PlannedPaymentsExecutor
 
 router = APIRouter(prefix="/planned-payments", tags=["planned-payments"])
 
@@ -59,6 +61,23 @@ async def get_generation_service() -> AsyncGenerator[
             raise
 
 
+async def get_executor() -> AsyncGenerator[PlannedPaymentsExecutor, None]:
+    """Get executor service with database session.
+
+    Yields:
+        PlannedPaymentsExecutor instance.
+    """
+    from app.db.session import async_session_factory
+
+    async with async_session_factory() as session:
+        try:
+            yield PlannedPaymentsExecutor(session)
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
 @router.post(
     "",
     response_model=PlannedPaymentOut,
@@ -88,7 +107,7 @@ async def create_planned_payment(
         amount=payment_data.amount,
         recurrence=payment_data.recurrence,
         start_date=payment_data.start_date,
-        next_due_at=payment_data.start_date,
+        next_due_at=payment_data.next_due_at or payment_data.start_date,
         category_id=payment_data.category_id,
         description=payment_data.description,
         end_date=payment_data.end_date,
@@ -265,3 +284,33 @@ async def generate_transactions(
         as_of_date=as_of_date,
     )
     return results
+
+
+@router.post(
+    "/execute",
+    response_model=PlannedPaymentExecutionSummary,
+)
+async def execute_due_payments(
+    current_user: UserOut = Depends(get_current_user),
+    executor: PlannedPaymentsExecutor = Depends(get_executor),
+    as_of_date: date | None = None,
+    max_occurrences: int = 100,
+) -> PlannedPaymentExecutionSummary:
+    """Execute generation for all due planned payments.
+
+    This is the scheduler-facing entry point for generating recurring
+    transactions. It provides a clear operational summary of what was
+    processed and generated.
+
+    Args:
+        executor: Executor service dependency.
+        as_of_date: Optional date to check due payments for. Defaults to today.
+        max_occurrences: Maximum number of occurrences to process.
+
+    Returns:
+        Execution summary with total counts and per-payment details.
+    """
+    return await executor.execute_due_payments(
+        as_of_date=as_of_date,
+        max_occurrences=max_occurrences,
+    )

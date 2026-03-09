@@ -181,6 +181,7 @@ class PlannedPaymentRepository:
         Returns:
             The updated planned payment.
         """
+        self.session.add(planned_payment)
         await self.session.flush()
         await self.session.refresh(planned_payment)
         return planned_payment
