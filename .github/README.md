@@ -1,19 +1,13 @@
-# .github notes
+# FinFlow
 
-This folder is for GitHub-specific automation only.
+FinFlow is a finance backend under active product development.
 
-## Keep here
+This `.github` directory only contains repository metadata and workflow helpers. The main project docs live in the repository root.
 
-- Workflow-specific assumptions.
-- CI notes tied to GitHub Actions.
-- Small operational notes for PR automation or templates.
+## Start here
 
-## Move elsewhere
-
-- General AI workflow guidance goes to `CLAUDE.md` or the external playbook repo.
-- Testing architecture belongs in `docs/testing-architecture.md`.
-- Product scope and roadmap belong in `README.md` and `IMPLEMENTATION.md`.
-
-## Rule of thumb
-
-If the guidance would still matter outside GitHub Actions, it probably does not belong here.
+- `README.md` in the repo root
+- `IMPLEMENTATION.md`
+- `CLAUDE.md`
+- `backend/README.md`
+- `docs/testing-architecture.md`

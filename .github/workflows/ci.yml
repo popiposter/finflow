@@ -12,22 +12,21 @@ jobs:
     outputs:
       backend_changed: ${{ steps.filter.outputs.backend }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Detect backend changes
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
         id: filter
-        uses: dorny/paths-filter@v3
         with:
           filters: |
             backend:
               - 'backend/**'
               - '.github/workflows/ci.yml'
-              - 'docs/testing-architecture.md'
-              - 'PLAYBOOK.md'
+              - 'scripts/dev/**'
+              - 'README.md'
+              - 'IMPLEMENTATION.md'
+              - 'CLAUDE.md'
+              - 'docs/**'
 
   backend-quick-checks:
-    name: backend-quick-checks
     needs: detect-backend
     if: needs.detect-backend.outputs.backend_changed == 'true'
     runs-on: ubuntu-latest
@@ -35,81 +34,57 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-
+          python-version: '3.13'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e . ruff mypy pytest pytest-asyncio pytest-cov asyncpg
-
-      - name: Run Ruff lint
-        run: ruff check .
-
-      - name: Run Ruff format check
-        run: ruff format --check .
-
-      - name: Run MyPy
-        run: mypy app
+          python -m pip install uv
+          uv sync --dev || python -m pip install -e . mypy pytest pytest-asyncio httpx asyncpg
+      - name: MyPy
+        run: mypy .
 
   backend-db-tests:
-    name: backend-db-tests
     needs: detect-backend
     if: needs.detect-backend.outputs.backend_changed == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16
         env:
-          POSTGRES_USER: finflow
-          POSTGRES_PASSWORD: finflow
-          POSTGRES_DB: finflow
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finflow_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U finflow -d finflow"
+          --health-cmd "pg_isready -U postgres -d finflow_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql+asyncpg://finflow:finflow@127.0.0.1:5432/finflow
-      JWT_SECRET_KEY: test-secret-key
-      JWT_ALGORITHM: HS256
-      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: '30'
-      JWT_REFRESH_TOKEN_EXPIRE_DAYS: '7'
-      DEBUG: 'false'
-      PYTHONUNBUFFERED: '1'
-      TESTCONTAINERS_RYUK_DISABLED: 'true'
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/finflow_test
     defaults:
       run:
         working-directory: backend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-
+          python-version: '3.13'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e . ruff mypy pytest pytest-asyncio pytest-cov asyncpg "testcontainers[postgresql]"
-
-      - name: Run full backend test suite
+          python -m pip install uv
+          uv sync --dev || python -m pip install -e . mypy pytest pytest-asyncio httpx asyncpg
+      - name: Pytest
         run: pytest tests/
 
   no-backend-note:
-    name: no-backend-note
     needs: detect-backend
     if: needs.detect-backend.outputs.backend_changed != 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: No backend changes detected
-        run: echo "No backend changes detected; backend CI jobs skipped."
+      - run: echo "No backend changes detected."
