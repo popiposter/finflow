@@ -25,11 +25,6 @@ Use the repo scripts:
 ./scripts/dev/assert-clean-git.sh
 ```
 
-```powershell
-./scripts/dev/check-backend.ps1
-./scripts/dev/assert-clean-git.ps1
-```
-
 If you change Python code and Ruff is installed locally, run it manually before commit:
 
 ```bash

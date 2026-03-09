@@ -103,6 +103,7 @@ class PlannedPaymentBase(BaseModel):
     recurrence: Recurrence
     start_date: date
     end_date: date | None = None
+    next_due_at: date | None = None
     is_active: bool = True
 
 
@@ -131,12 +132,28 @@ class PlannedPaymentOut(BaseModel):
 
 
 class RecurrenceGenerationResult(BaseModel):
-    """Result of generating recurring transactions."""
+    """Result of generating recurring transactions for a single planned payment."""
 
     planned_payment_id: UUID
     generated_transactions: list[UUID]
     next_due_at: date
     skipped_occurrences: int = 0
+
+
+class PlannedPaymentExecutionSummary(BaseModel):
+    """Summary of a planned payment execution run."""
+
+    total_processed: int
+    total_generated: int
+    skipped_occurrences: int
+    details: list[RecurrenceGenerationResult]
+
+
+class PlannedPaymentExecutionRequest(BaseModel):
+    """Request schema for planned payment execution endpoint."""
+
+    as_of_date: date | None = None
+    max_occurrences: int = 100
 
 
 # === Report Schemas ===

@@ -1,10 +1,2 @@
-$ErrorActionPreference = 'Stop'
-
-$Root = Resolve-Path (Join-Path $PSScriptRoot '../..')
-Set-Location (Join-Path $Root 'backend')
-
-Write-Host "Running backend validation..."
-Write-Host "Optional manual Python formatting step if Ruff is installed: ruff check . && ruff format ."
-
-mypy .
-pytest tests/
+Write-Error "PowerShell helper scripts are no longer supported in this repository. Use ./scripts/dev/check-backend.sh from bash."
+exit 1

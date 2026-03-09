@@ -25,10 +25,7 @@ Default local pass:
 ./scripts/dev/assert-clean-git.sh
 ```
 
-```powershell
-./scripts/dev/check-backend.ps1
-./scripts/dev/assert-clean-git.ps1
-```
+The check script uses the uv-managed environment to match CI exactly. This ensures mypy and pytest run with the same tool versions and configuration as GitHub Actions.
 
 If you touch Python code and Ruff is available locally, run it manually before commit:
 

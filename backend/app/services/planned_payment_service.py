@@ -1,6 +1,7 @@
 """Service for generating recurring transactions from planned payments."""
 
 from datetime import date, datetime, timedelta
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,12 +39,15 @@ class PlannedPaymentGenerationService:
 
     async def generate_due_transactions(
         self,
+        user_id: UUID | None = None,
         as_of_date: date | None = None,
         max_occurrences: int = 100,
     ) -> list[RecurrenceGenerationResult]:
         """Generate transactions for all due planned payments.
 
         Args:
+            user_id: Optional user UUID to scope payments to. If not provided,
+                generates for all users.
             as_of_date: The date to check due payments for. Defaults to today.
             max_occurrences: Maximum number of occurrences to process.
 
@@ -53,10 +57,18 @@ class PlannedPaymentGenerationService:
         if as_of_date is None:
             as_of_date = date.today()
 
-        # Get all active planned payments that are due
-        due_payments = await self.planned_payment_repo.get_due_planned_payments(
-            as_of_date=as_of_date,
-        )
+        # Get due planned payments, optionally scoped by user
+        if user_id is not None:
+            due_payments = await self.planned_payment_repo.get_due_by_user(
+                user_id=user_id,
+                as_of_date=as_of_date,
+                limit=max_occurrences,
+            )
+        else:
+            due_payments = await self.planned_payment_repo.get_due_planned_payments(
+                as_of_date=as_of_date,
+                limit=max_occurrences,
+            )
 
         results: list[RecurrenceGenerationResult] = []
 
