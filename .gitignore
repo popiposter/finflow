@@ -1,20 +1,10 @@
-# Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-
-# Virtual environments
 .venv/
 venv/
-
-# IDEs and editors
-.idea/
-.vscode/
-
-# OS files
+.env
 .DS_Store
-Thumbs.db
+.claude/session-*.md

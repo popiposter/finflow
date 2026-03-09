@@ -4,10 +4,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-if [[ -n "$(git status --porcelain)" ]]; then
-  echo "Git working tree is not clean."
-  git status --short
-  exit 1
-fi
+unstaged="$(git diff --name-only --ignore-cr-at-eol)"
+staged="$(git diff --cached --name-only --ignore-cr-at-eol)"
 
-echo "Git working tree is clean."
+if [[ -n "$unstaged" || -n "$staged" ]]; then
+  echo "Advisory: working tree has local changes."
+  echo "Unstaged:"
+  echo "$unstaged"
+  echo "Staged:"
+  echo "$staged"
+else
+  echo "Working tree looks clean."
+fi

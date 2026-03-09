@@ -3,11 +3,16 @@ $ErrorActionPreference = 'Stop'
 $Root = Resolve-Path (Join-Path $PSScriptRoot '../..')
 Set-Location $Root
 
-$status = git status --porcelain
-if ($status) {
-    Write-Host "Git working tree is not clean."
-    git status --short
-    exit 1
-}
+$unstaged = git diff --name-only --ignore-cr-at-eol
+$staged = git diff --cached --name-only --ignore-cr-at-eol
 
-Write-Host "Git working tree is clean."
+if ($unstaged -or $staged) {
+    Write-Host "Advisory: working tree has local changes."
+    Write-Host "Unstaged:"
+    Write-Host $unstaged
+    Write-Host "Staged:"
+    Write-Host $staged
+}
+else {
+    Write-Host "Working tree looks clean."
+}

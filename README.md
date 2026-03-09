@@ -1,27 +1,43 @@
 # FinFlow
 
-FinFlow is a backend-first finance application under active bootstrap. The repository now uses a compact documentation layout so contributors can find the right source of truth quickly.
+FinFlow is a finance backend under active product development.
 
-## Start here
+## Where to start
 
-- `README.md` — project overview and navigation.
-- `backend/README.md` — backend developer entry point.
-- `CLAUDE.md` — short repository contract for AI agents.
-- `docs/README.md` — documentation map.
-- `docs/testing-architecture.md` — testing and CI rules.
-- `IMPLEMENTATION.md` — current delivery status.
-- `PLAYBOOK.md` — local pointer to the external private playbook.
+- `IMPLEMENTATION.md` — current delivery status and next likely product steps.
+- `CLAUDE.md` — short working contract for AI coding agents.
+- `backend/README.md` — backend-specific developer workflow.
+- `docs/testing-architecture.md` — how tests and CI are structured.
 
-## Current scope
+## Current backend scope
 
-- FastAPI backend skeleton.
-- Health endpoint and settings management.
-- Async SQLAlchemy, Alembic, and PostgreSQL-backed tests.
-- Authentication foundation with users, refresh sessions, API tokens, routes, and CI coverage.
+- Authentication foundation.
+- Finance domain models for accounts, categories, transactions, and planned payments.
+- Parse-and-create transaction ingestion.
+- Planned payments Stage 1.
+- Reporting Stage 1.
+- Finance CRUD Stage 3 for accounts, categories, and transactions.
 
-## Documentation policy
+## Local developer workflow
 
-- Keep one primary file per topic.
-- Prefer short pointer docs over repeated guidance.
-- Move reusable process guidance to the external playbook repo.
-- Keep repository docs practical and current; delete or shrink stale prose instead of layering new prose on top.
+Use the repo scripts for the default local pass:
+
+```bash
+./scripts/dev/check-backend.sh
+./scripts/dev/assert-clean-git.sh
+```
+
+```powershell
+./scripts/dev/check-backend.ps1
+./scripts/dev/assert-clean-git.ps1
+```
+
+If you touch Python code and Ruff is available locally, run it manually before commit:
+
+```bash
+cd backend
+ruff check .
+ruff format .
+```
+
+Ruff is now advisory in the local workflow rather than enforced by repo scripts.

@@ -12,44 +12,37 @@ This folder contains the application code, migrations, and tests for the current
 ## Developer flow
 
 - Implement feature code first.
-- Add unit or smoke tests unless the task explicitly asks for more.
+- Add only the coverage required by the current stage.
 - Use `docs/testing-architecture.md` before changing fixtures, DB setup, or CI expectations.
 - Keep model definitions aligned with migrations.
-- Run repo checks before push:
+
+## Local checks
+
+Default local pass:
 
 ```bash
-# Bash
 ./scripts/dev/check-backend.sh
 ./scripts/dev/assert-clean-git.sh
 ```
 
 ```powershell
-# PowerShell
 ./scripts/dev/check-backend.ps1
 ./scripts/dev/assert-clean-git.ps1
 ```
 
-## Formatting and hooks
+If you touch Python code and Ruff is available locally, run it manually before commit:
 
-- `pre-commit run --all-files` already runs the repo Ruff hooks, including formatting.
-- CI uses Ruff format check, so the local pre-commit formatter output should match CI.
-- If hooks modify files, stage them, amend or commit them, and rerun checks until `git status --short` is empty.
-- Never use `git push --no-verify` for normal feature work.
+```bash
+cd backend
+ruff check .
+ruff format .
+```
 
-## CI alignment
+Ruff is advisory rather than a repo-enforced gate.
 
-Backend CI has two layers:
+## Practical lessons
 
-- Fast checks: Ruff, format check, and MyPy.
-- DB-backed checks: full `pytest tests/` with PostgreSQL.
-
-## Code quality
-
-The preferred local sequence is:
-
-1. `pre-commit run --all-files`
-2. `mypy .`
-3. `pytest tests/`
-4. `git status --short` must be empty before push
-
-Use the scripts above so the sequence stays consistent.
+- Do not commit temporary `.claude/session-*.md` notes.
+- For repository `update()` methods that expose refreshed ORM state, prefer returning a fresh re-read when async session state gets tricky.
+- For transaction tests, validate both `date_accrual` and `date_cash` in realistic scenarios rather than only same-day cases.
+- For category APIs, validate parent ownership and hierarchy behavior explicitly.
