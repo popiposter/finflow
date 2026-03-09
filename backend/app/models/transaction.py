@@ -1,14 +1,19 @@
 """Transaction model for financial entries."""
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import ForeignKey, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import TIMESTAMP
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.models.planned_payment import PlannedPayment
 from app.models.types import MONEY_TYPE, Money, TransactionType
+
+if TYPE_CHECKING:
+    from app.models.planned_payment import PlannedPayment
 
 
 class Transaction(Base):
@@ -68,6 +73,16 @@ class Transaction(Base):
         nullable=True,
         index=True,
     )
+    # Source planned payment for recurring transactions (optional)
+    planned_payment_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("planned_payments.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    # Relationship to source planned payment
+    planned_payment: Mapped[PlannedPayment | None] = relationship(
+        back_populates="transactions",
+    )
     # Amount as positive Decimal (direction determined by type + account type)
     amount: Mapped[Money] = mapped_column(
         MONEY_TYPE,
@@ -116,4 +131,13 @@ class Transaction(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    # Prevent duplicate transactions for the same planned payment occurrence
+    __table_args__ = (
+        UniqueConstraint(
+            "planned_payment_id",
+            "date_cash",
+            name="uq_planned_payment_date_cash",
+        ),
     )

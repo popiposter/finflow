@@ -1,14 +1,18 @@
 """Planned payment model for recurring transaction generation."""
 
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import ForeignKey, func
 from sqlalchemy.dialects.postgresql import TIMESTAMP
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.types import MONEY_TYPE, Money, Recurrence
+
+if TYPE_CHECKING:
+    from app.models.transaction import Transaction
 
 
 class PlannedPayment(Base):
@@ -94,6 +98,11 @@ class PlannedPayment(Base):
         nullable=False,
         default=True,
         index=True,
+    )
+    # Generated transactions for this planned payment
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="planned_payment",
+        cascade="all, delete-orphan",
     )
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),

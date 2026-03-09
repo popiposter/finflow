@@ -1,12 +1,10 @@
 """Service for generating recurring transactions from planned payments."""
 
 from datetime import date, datetime, timedelta
-from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.planned_payment import PlannedPayment
-from app.models.transaction import Transaction
 from app.models.types import Recurrence, TransactionType
 from app.repositories.planned_payment_repository import PlannedPaymentRepository
 from app.repositories.transaction_repository import TransactionRepository
@@ -101,6 +99,7 @@ class PlannedPaymentGenerationService:
             date_accrual=datetime.combine(payment.next_due_at, datetime.min.time()),
             date_cash=datetime.combine(payment.next_due_at, datetime.min.time()),
             category_id=payment.category_id,
+            planned_payment_id=payment.id,
             description=payment.description
             or f"Planned payment: {payment.next_due_at}",
             is_reconciled=False,
@@ -163,48 +162,3 @@ class PlannedPaymentGenerationService:
             case _:
                 # Should not happen with enum validation
                 raise ValueError(f"Unknown recurrence: {recurrence}")
-
-    async def generate_single_occurrence(
-        self,
-        planned_payment_id: UUID,
-        user_id: UUID,
-        occurrence_date: date,
-    ) -> Transaction | None:
-        """Generate a single transaction occurrence for testing or manual trigger.
-
-        This method allows generating a transaction for a specific date without
-        updating the planned payment's next_due_at. This is useful for:
-        - Testing the generation logic
-        - Generating transactions for past dates
-        - Special one-off occurrences
-
-        Args:
-            planned_payment_id: The planned payment ID.
-            user_id: The user's UUID (for ownership verification).
-            occurrence_date: The date for this occurrence.
-
-        Returns:
-            The created transaction, or None if planned payment not found.
-        """
-        payment = await self.planned_payment_repo.get_by_user_and_id(
-            user_id=user_id,
-            planned_payment_id=planned_payment_id,
-        )
-
-        if payment is None or not payment.is_active:
-            return None
-
-        # Create the transaction without updating next_due_at
-        transaction = await self.transaction_repo.create(
-            user_id=payment.user_id,
-            account_id=payment.account_id,
-            amount=payment.amount,
-            type_=TransactionType.PAYMENT,
-            date_accrual=datetime.combine(occurrence_date, datetime.min.time()),
-            date_cash=datetime.combine(occurrence_date, datetime.min.time()),
-            category_id=payment.category_id,
-            description=payment.description or f"Planned payment: {occurrence_date}",
-            is_reconciled=False,
-        )
-
-        return transaction
