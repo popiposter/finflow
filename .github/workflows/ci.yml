@@ -42,14 +42,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install uv
-          uv sync --dev || python -m pip install -e . mypy pytest pytest-asyncio httpx
+          uv sync --dev
       - name: Show tool versions
         run: |
           python --version
-          mypy --version
-          pytest --version
+          uv --version
+          uv run mypy --version
+          uv run pytest --version
       - name: MyPy (pretty output)
-        run: mypy . --show-error-codes --pretty
+        run: uv run mypy . --show-error-codes --pretty
 
   backend-db-tests:
     needs: detect-backend
@@ -83,15 +84,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install uv
-          uv sync --dev || python -m pip install -e . mypy pytest pytest-asyncio httpx
+          uv sync --dev
       - name: Show tool versions
         run: |
           python --version
-          pytest --version
+          uv --version
+          uv run pytest --version
       - name: Planned payments API focus
-        run: pytest tests/api/test_planned_payments.py -vv -x --maxfail=1
+        run: uv run pytest tests/api/test_planned_payments.py -vv -x --maxfail=1
       - name: Full backend test suite
-        run: pytest tests/ -vv -x --maxfail=1 --durations=10 --junitxml=pytest-results.xml
+        run: uv run pytest tests/ -vv -x --maxfail=1 --durations=10 --junitxml=pytest-results.xml
       - name: Upload pytest results
         if: always()
         uses: actions/upload-artifact@v4
