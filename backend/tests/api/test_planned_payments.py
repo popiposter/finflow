@@ -407,8 +407,9 @@ class TestExecuteDuePayments:
 
         # First execution
         exec1 = await async_client.post(
-            f"/api/v1/planned-payments/execute?as_of_date={today}",
+            "/api/v1/planned-payments/execute",
             headers={"Authorization": f"Bearer {access_token}"},
+            json={"as_of_date": today},
         )
         assert exec1.status_code == 200
         first_result = exec1.json()
@@ -416,8 +417,9 @@ class TestExecuteDuePayments:
 
         # Second execution (same date) - should be idempotent
         exec2 = await async_client.post(
-            f"/api/v1/planned-payments/execute?as_of_date={today}",
+            "/api/v1/planned-payments/execute",
             headers={"Authorization": f"Bearer {access_token}"},
+            json={"as_of_date": today},
         )
         assert exec2.status_code == 200
         second_result = exec2.json()
@@ -464,8 +466,9 @@ class TestExecuteDuePayments:
 
         # Execute for today (before due date)
         execute_response = await async_client.post(
-            f"/api/v1/planned-payments/execute?as_of_date={today}",
+            "/api/v1/planned-payments/execute",
             headers={"Authorization": f"Bearer {access_token}"},
+            json={"as_of_date": today},
         )
 
         assert execute_response.status_code == 200
@@ -479,6 +482,7 @@ class TestExecuteDuePayments:
         """Test execute endpoint without authentication."""
         response = await async_client.post(
             "/api/v1/planned-payments/execute",
+            json={"as_of_date": "2024-01-15"},
         )
 
         assert response.status_code == 401

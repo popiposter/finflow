@@ -8,6 +8,7 @@ This module provides a clean entry point for scheduler orchestration with:
 
 from datetime import date, datetime, timedelta
 from typing import TypedDict
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,15 +54,19 @@ class PlannedPaymentsExecutor:
     - Clear output: Returns detailed results showing what was processed
       and generated
     - Batch processing: Can process multiple payments in a single run
+    - User-scoped: Only processes payments for the current user
     """
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, user_id: str | None = None):
         """Initialize the executor with a database session.
 
         Args:
             session: The async SQLAlchemy session.
+            user_id: Optional user ID for scoping payments to a single user.
+                     If None, processes all users' payments (not recommended).
         """
         self.session = session
+        self.user_id = user_id
         self.planned_payment_repo = PlannedPaymentRepository(session)
         self.transaction_repo = TransactionRepository(session)
 
@@ -90,17 +95,19 @@ class PlannedPaymentsExecutor:
         if as_of_date is None:
             as_of_date = date.today()
 
-        # Get all active planned payments that are due
-        due_payments = await self.planned_payment_repo.get_due_planned_payments(
-            as_of_date=as_of_date,
-            limit=max_occurrences,
-        )
-
-        # Debug: Print payment info
-        import sys
-        print(f"[DEBUG] execute_due_payments: as_of_date={as_of_date}, due_payments count={len(due_payments)}", file=sys.stderr)
-        for p in due_payments:
-            print(f"[DEBUG]   - payment {p.id}: next_due_at={p.next_due_at}", file=sys.stderr)
+        # Get all active planned payments that are due for the current user
+        if self.user_id:
+            due_payments = await self.planned_payment_repo.get_due_by_user(
+                user_id=UUID(self.user_id),
+                as_of_date=as_of_date,
+                limit=max_occurrences,
+            )
+        else:
+            # Fallback: get all users' due payments (not recommended)
+            due_payments = await self.planned_payment_repo.get_due_planned_payments(
+                as_of_date=as_of_date,
+                limit=max_occurrences,
+            )
 
         results: list[RecurrenceGenerationResult] = []
         total_generated = 0

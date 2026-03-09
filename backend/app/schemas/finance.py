@@ -149,6 +149,13 @@ class PlannedPaymentExecutionSummary(BaseModel):
     details: list[RecurrenceGenerationResult]
 
 
+class PlannedPaymentExecutionRequest(BaseModel):
+    """Request schema for planned payment execution endpoint."""
+
+    as_of_date: date | None = None
+    max_occurrences: int = 100
+
+
 # === Report Schemas ===
 
 

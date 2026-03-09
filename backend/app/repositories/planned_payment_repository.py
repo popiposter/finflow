@@ -72,6 +72,41 @@ class PlannedPaymentRepository:
         result = await self.session.scalars(stmt)
         return list(result.all())
 
+    async def get_due_by_user(
+        self,
+        user_id: UUID,
+        as_of_date: date | None = None,
+        limit: int = 100,
+    ) -> list[PlannedPayment]:
+        """Get due planned payments for a specific user.
+
+        Args:
+            user_id: The user's UUID.
+            as_of_date: The date to check due payments for. Defaults to today.
+            limit: Maximum number of results to return.
+
+        Returns:
+            List of planned payments that are due for the user.
+        """
+        if as_of_date is None:
+            as_of_date = date.today()
+
+        stmt = (
+            select(PlannedPayment)
+            .where(
+                PlannedPayment.user_id == user_id,
+                PlannedPayment.is_active == True,  # noqa: E712
+                PlannedPayment.next_due_at <= as_of_date,
+            )
+            .order_by(
+                PlannedPayment.next_due_at,
+                PlannedPayment.created_at,
+            )
+            .limit(limit)
+        )
+        result = await self.session.scalars(stmt)
+        return list(result.all())
+
     async def get_due_planned_payments(
         self,
         as_of_date: date | None = None,

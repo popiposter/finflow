@@ -3,13 +3,14 @@
 from datetime import date
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 
 from app.api.dependencies.auth import get_current_user
 from app.repositories.planned_payment_repository import PlannedPaymentRepository
 from app.schemas.auth import UserOut
 from app.schemas.finance import (
     PlannedPaymentCreate,
+    PlannedPaymentExecutionRequest,
     PlannedPaymentExecutionSummary,
     PlannedPaymentOut,
     RecurrenceGenerationResult,
@@ -61,8 +62,13 @@ async def get_generation_service() -> AsyncGenerator[
             raise
 
 
-async def get_executor() -> AsyncGenerator[PlannedPaymentsExecutor, None]:
+async def get_executor(
+    current_user: UserOut = Depends(get_current_user),
+) -> AsyncGenerator[PlannedPaymentsExecutor, None]:
     """Get executor service with database session.
+
+    Args:
+        current_user: Authenticated user for scoping payments.
 
     Yields:
         PlannedPaymentsExecutor instance.
@@ -71,7 +77,7 @@ async def get_executor() -> AsyncGenerator[PlannedPaymentsExecutor, None]:
 
     async with async_session_factory() as session:
         try:
-            yield PlannedPaymentsExecutor(session)
+            yield PlannedPaymentsExecutor(session, user_id=str(current_user.id))
             await session.commit()
         except Exception:
             await session.rollback()
@@ -293,8 +299,7 @@ async def generate_transactions(
 async def execute_due_payments(
     current_user: UserOut = Depends(get_current_user),
     executor: PlannedPaymentsExecutor = Depends(get_executor),
-    as_of_date: date | None = None,
-    max_occurrences: int = 100,
+    request: PlannedPaymentExecutionRequest = Body(...),
 ) -> PlannedPaymentExecutionSummary:
     """Execute generation for all due planned payments.
 
@@ -303,14 +308,14 @@ async def execute_due_payments(
     processed and generated.
 
     Args:
+        current_user: Authenticated user (used for tenant scoping).
         executor: Executor service dependency.
-        as_of_date: Optional date to check due payments for. Defaults to today.
-        max_occurrences: Maximum number of occurrences to process.
+        request: Execution parameters (as_of_date, max_occurrences).
 
     Returns:
         Execution summary with total counts and per-payment details.
     """
     return await executor.execute_due_payments(
-        as_of_date=as_of_date,
-        max_occurrences=max_occurrences,
+        as_of_date=request.as_of_date,
+        max_occurrences=request.max_occurrences,
     )
