@@ -69,6 +69,20 @@ class TransactionType(StrEnum):
     ADJUSTMENT = "adjustment"
 
 
+class Recurrence(StrEnum):
+    """Recurrence patterns for planned payments.
+
+    MVP supports simple recurring intervals:
+    - DAILY: Every day
+    - WEEKLY: Every week
+    - MONTHLY: Every month
+    """
+
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+
+
 # Common validation constants
 MAX_ACCOUNT_NAME_LENGTH = 100
 MAX_CATEGORY_NAME_LENGTH = 100

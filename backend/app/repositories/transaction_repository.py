@@ -147,6 +147,7 @@ class TransactionRepository:
         )
         self.session.add(transaction)
         await self.session.flush()
+        await self.session.refresh(transaction)
         return transaction
 
     async def update(self, transaction: Transaction) -> Transaction:

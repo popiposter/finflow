@@ -60,6 +60,7 @@ class AccountRepository:
         account = Account(user_id=user_id, name=name, type=type_)
         self.session.add(account)
         await self.session.flush()
+        await self.session.refresh(account)
         return account
 
     async def update(self, account: Account) -> Account:
@@ -72,6 +73,7 @@ class AccountRepository:
             The updated account.
         """
         await self.session.flush()
+        await self.session.refresh(account)
         return account
 
     async def delete(self, account: Account) -> None:
