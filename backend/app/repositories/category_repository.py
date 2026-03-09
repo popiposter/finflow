@@ -105,6 +105,7 @@ class CategoryRepository:
         )
         self.session.add(category)
         await self.session.flush()
+        await self.session.refresh(category)
         return category
 
     async def update(self, category: Category) -> Category:
@@ -117,6 +118,7 @@ class CategoryRepository:
             The updated category.
         """
         await self.session.flush()
+        await self.session.refresh(category)
         return category
 
     async def delete(self, category: Category) -> None:

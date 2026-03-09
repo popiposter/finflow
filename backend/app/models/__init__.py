@@ -3,6 +3,7 @@
 from app.models.account import Account
 from app.models.api_token import ApiToken
 from app.models.category import Category
+from app.models.planned_payment import PlannedPayment
 from app.models.refresh_session import RefreshSession
 from app.models.transaction import Transaction
 from app.models.types import (
@@ -15,6 +16,7 @@ from app.models.types import (
     AccountType,
     CategoryType,
     Money,
+    Recurrence,
     TransactionType,
 )
 from app.models.user import User
@@ -26,10 +28,12 @@ __all__ = [
     # Finance models
     "Account",
     "Category",
+    "PlannedPayment",
     "Transaction",
     # Types and enums
     "AccountType",
     "CategoryType",
+    "Recurrence",
     "TransactionType",
     "Money",
     "MONEY_TYPE",

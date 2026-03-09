@@ -1,12 +1,12 @@
 """Finance domain schemas."""
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.models.types import AccountType, CategoryType, TransactionType
+from app.models.types import AccountType, CategoryType, Recurrence, TransactionType
 
 
 class AccountBase(BaseModel):
@@ -90,3 +90,49 @@ class TransactionOut(TransactionBase):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PlannedPaymentBase(BaseModel):
+    """Base planned payment schema."""
+
+    account_id: UUID
+    category_id: UUID | None = None
+    amount: Decimal
+    description: str | None = None
+    recurrence: Recurrence
+    start_date: date
+    end_date: date | None = None
+    is_active: bool = True
+
+
+class PlannedPaymentCreate(PlannedPaymentBase):
+    """Schema for planned payment creation."""
+
+
+class PlannedPaymentOut(BaseModel):
+    """Schema for planned payment responses."""
+
+    id: UUID
+    user_id: UUID
+    account_id: UUID
+    category_id: UUID | None
+    amount: Decimal
+    description: str | None
+    recurrence: Recurrence
+    start_date: date
+    end_date: date | None
+    next_due_at: date
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class RecurrenceGenerationResult(BaseModel):
+    """Result of generating recurring transactions."""
+
+    planned_payment_id: UUID
+    generated_transactions: list[UUID]
+    next_due_at: date
+    skipped_occurrences: int = 0

@@ -15,6 +15,9 @@ from app.schemas.finance import (
     AccountOut,
     CategoryCreate,
     CategoryOut,
+    PlannedPaymentCreate,
+    PlannedPaymentOut,
+    RecurrenceGenerationResult,
     TransactionCreate,
     TransactionOut,
 )
@@ -41,6 +44,9 @@ __all__ = [
     "AccountOut",
     "CategoryCreate",
     "CategoryOut",
+    "PlannedPaymentCreate",
+    "PlannedPaymentOut",
+    "RecurrenceGenerationResult",
     "TransactionCreate",
     "TransactionOut",
     # Parse-and-create

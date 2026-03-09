@@ -113,6 +113,7 @@ class TransactionRepository:
         date_cash: datetime,
         category_id: UUID | None = None,
         counterparty_account_id: UUID | None = None,
+        planned_payment_id: UUID | None = None,
         description: str | None = None,
         is_reconciled: bool = False,
     ) -> Transaction:
@@ -127,6 +128,7 @@ class TransactionRepository:
             date_cash: When cash actually moves.
             category_id: Optional category for classification.
             counterparty_account_id: Optional opposing account (transfers).
+            planned_payment_id: Optional source planned payment for recurring transactions.
             description: Human-readable description.
             is_reconciled: Whether transaction is reconciled.
 
@@ -142,11 +144,13 @@ class TransactionRepository:
             date_cash=date_cash,
             category_id=category_id,
             counterparty_account_id=counterparty_account_id,
+            planned_payment_id=planned_payment_id,
             description=description,
             is_reconciled=is_reconciled,
         )
         self.session.add(transaction)
         await self.session.flush()
+        await self.session.refresh(transaction)
         return transaction
 
     async def update(self, transaction: Transaction) -> Transaction:
