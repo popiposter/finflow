@@ -16,9 +16,9 @@ from app.services.parse_create_service import TransactionParseCreateService
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
-async def get_parse_create_service() -> (
-    AsyncGenerator[TransactionParseCreateService, None]
-):
+async def get_parse_create_service() -> AsyncGenerator[
+    TransactionParseCreateService, None
+]:
     """Get parse-create service with database session.
 
     Yields:

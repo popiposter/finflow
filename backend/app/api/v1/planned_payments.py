@@ -40,9 +40,9 @@ async def get_planned_payment_repo(
             raise
 
 
-async def get_generation_service() -> (
-    AsyncGenerator[PlannedPaymentGenerationService, None]
-):
+async def get_generation_service() -> AsyncGenerator[
+    PlannedPaymentGenerationService, None
+]:
     """Get generation service with database session.
 
     Yields:
