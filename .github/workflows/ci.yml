@@ -43,8 +43,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install uv
           uv sync --dev || python -m pip install -e . mypy pytest pytest-asyncio httpx asyncpg
-      - name: MyPy
-        run: mypy .
+      - name: Show tool versions
+        run: |
+          python --version
+          mypy --version
+          pytest --version
+      - name: MyPy (pretty output)
+        run: mypy . --show-error-codes --pretty
 
   backend-db-tests:
     needs: detect-backend
@@ -79,8 +84,21 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install uv
           uv sync --dev || python -m pip install -e . mypy pytest pytest-asyncio httpx asyncpg
-      - name: Pytest
-        run: pytest tests/
+      - name: Show tool versions
+        run: |
+          python --version
+          pytest --version
+      - name: Planned payments API focus
+        run: pytest tests/api/test_planned_payments.py -vv -x --maxfail=1
+      - name: Full backend test suite
+        run: pytest tests/ -vv -x --maxfail=1 --durations=10 --junitxml=pytest-results.xml
+      - name: Upload pytest results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: backend/pytest-results.xml
+          if-no-files-found: ignore
 
   no-backend-note:
     needs: detect-backend
