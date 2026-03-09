@@ -1,8 +1,9 @@
 """Service for P&L and cashflow report aggregation."""
 
 from datetime import date
-from typing import TYPE_CHECKING
 from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.report_repository import ReportRepository
 from app.schemas.finance import (
@@ -13,9 +14,6 @@ from app.schemas.finance import (
     ReportCategoryTotal,
     ReportTypeTotal,
 )
-
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ReportService:
