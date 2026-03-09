@@ -8,6 +8,7 @@ This folder contains the application code, migrations, and tests for the current
 - `alembic_migrations/` — schema migrations.
 - `tests/` — unit, integration, and API tests.
 - `pyproject.toml` — Python dependencies and tool configuration.
+- `mypy.ini` — local mypy exclusions for legacy scratch files and migration edge cases.
 
 ## Developer flow
 
@@ -23,11 +24,6 @@ Default local pass:
 ```bash
 ./scripts/dev/check-backend.sh
 ./scripts/dev/assert-clean-git.sh
-```
-
-```powershell
-./scripts/dev/check-backend.ps1
-./scripts/dev/assert-clean-git.ps1
 ```
 
 If you touch Python code and Ruff is available locally, run it manually before commit:

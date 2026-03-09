@@ -27,11 +27,6 @@ Use the repo scripts for the default local pass:
 ./scripts/dev/assert-clean-git.sh
 ```
 
-```powershell
-./scripts/dev/check-backend.ps1
-./scripts/dev/assert-clean-git.ps1
-```
-
 If you touch Python code and Ruff is available locally, run it manually before commit:
 
 ```bash
