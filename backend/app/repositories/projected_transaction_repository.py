@@ -99,59 +99,6 @@ class ProjectedTransactionRepository:
         result = await self.session.scalars(stmt)
         return list(result.all())
 
-    async def get_by_status(
-        self,
-        user_id: UUID,
-        status: ProjectedTransactionStatus,
-    ) -> list[ProjectedTransaction]:
-        """Get projected transactions by status for a user.
-
-        Args:
-            user_id: The user's UUID.
-            status: The status to filter by.
-
-        Returns:
-            List of projected transactions with the given status.
-        """
-        stmt = (
-            select(ProjectedTransaction)
-            .where(
-                ProjectedTransaction.planned_payment.has(user_id=user_id),
-                ProjectedTransaction.status == status,
-            )
-            .order_by(ProjectedTransaction.projected_date)
-        )
-        result = await self.session.scalars(stmt)
-        return list(result.all())
-
-    async def get_by_date_range(
-        self,
-        user_id: UUID,
-        from_date: date,
-        to_date: date,
-    ) -> list[ProjectedTransaction]:
-        """Get projected transactions within a date range.
-
-        Args:
-            user_id: The user's UUID.
-            from_date: Start of date range (inclusive).
-            to_date: End of date range (inclusive).
-
-        Returns:
-            List of projected transactions in the date range.
-        """
-        stmt = (
-            select(ProjectedTransaction)
-            .where(
-                ProjectedTransaction.planned_payment.has(user_id=user_id),
-                ProjectedTransaction.projected_date >= from_date,
-                ProjectedTransaction.projected_date <= to_date,
-            )
-            .order_by(ProjectedTransaction.projected_date)
-        )
-        result = await self.session.scalars(stmt)
-        return list(result.all())
-
     async def get_by_user_and_id(
         self,
         user_id: UUID,
@@ -172,6 +119,37 @@ class ProjectedTransactionRepository:
         )
         result = await self.session.scalar(stmt)
         return result
+
+    async def get_filtered(
+        self,
+        user_id: UUID,
+        status: ProjectedTransactionStatus | None = None,
+        from_date: date | None = None,
+        to_date: date | None = None,
+    ) -> list[ProjectedTransaction]:
+        """Get projected transactions for a user with optional filters.
+
+        Args:
+            user_id: The user's UUID.
+            status: Filter by status (optional).
+            from_date: Filter by from date (optional).
+            to_date: Filter by to date (optional).
+
+        Returns:
+            List of projected transactions matching the filters.
+        """
+        stmt = select(ProjectedTransaction).where(
+            ProjectedTransaction.planned_payment.has(user_id=user_id)
+        )
+        if status is not None:
+            stmt = stmt.where(ProjectedTransaction.status == status)
+        if from_date is not None:
+            stmt = stmt.where(ProjectedTransaction.projected_date >= from_date)
+        if to_date is not None:
+            stmt = stmt.where(ProjectedTransaction.projected_date <= to_date)
+        stmt = stmt.order_by(ProjectedTransaction.projected_date)
+        result = await self.session.scalars(stmt)
+        return list(result.all())
 
     async def create(
         self,

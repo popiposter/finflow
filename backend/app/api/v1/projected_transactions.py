@@ -8,6 +8,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from pydantic import UUID4
 
 from app.api.dependencies.auth import get_current_user
+from app.exceptions import InvalidProjectionStatusError, ProjectionNotFoundError
 from app.models.projected_transaction import ProjectedTransaction
 from app.models.types import ProjectedTransactionStatus
 from app.repositories.projected_transaction_repository import ProjectedTransactionRepository
@@ -177,12 +178,12 @@ async def update_projected_transaction(
             projected_category_id=update_data.projected_category_id,
         )
         return ProjectedTransactionOut.model_validate(updated)
-    except RuntimeError as e:
-        if "not found" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Projected transaction not found",
-            ) from e
+    except ProjectionNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Projected transaction not found",
+        ) from e
+    except InvalidProjectionStatusError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
@@ -223,7 +224,7 @@ async def confirm_projected_transaction(
             user_id=current_user.id,
             projected_transaction_id=projection_id,
             amount=confirm_data.amount if confirm_data else None,
-            date_=datetime.combine(confirm_data.date, datetime.min.time()) if confirm_data and confirm_data.date else None,
+            date_=confirm_data.date if confirm_data and confirm_data.date else None,
             description=confirm_data.description if confirm_data else None,
             category_id=confirm_data.category_id if confirm_data else None,
         )
@@ -231,12 +232,12 @@ async def confirm_projected_transaction(
             projected_transaction=ProjectedTransactionOut.model_validate(updated),
             transaction_id=transaction_id,
         )
-    except RuntimeError as e:
-        if "not found" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Projected transaction not found",
-            ) from e
+    except ProjectionNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Projected transaction not found",
+        ) from e
+    except InvalidProjectionStatusError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
@@ -276,12 +277,12 @@ async def skip_projected_transaction(
             projected_transaction_id=projection_id,
         )
         return ProjectedTransactionOut.model_validate(updated)
-    except RuntimeError as e:
-        if "not found" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Projected transaction not found",
-            ) from e
+    except ProjectionNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Projected transaction not found",
+        ) from e
+    except InvalidProjectionStatusError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),

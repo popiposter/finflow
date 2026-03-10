@@ -1,6 +1,9 @@
 """Projected transaction model for forecast layer between planned payments and transactions."""
 
+from __future__ import annotations
+
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import ForeignKey, UniqueConstraint, func
@@ -8,9 +11,7 @@ from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.planned_payment import PlannedPayment
 from app.models.types import MONEY_TYPE, Money, ProjectedTransactionStatus, ProjectedTransactionType
-from app.models.transaction import Transaction
 
 
 class ProjectedTransaction(Base):
@@ -124,11 +125,11 @@ class ProjectedTransaction(Base):
         nullable=False,
     )
 
-    # Relationships
-    planned_payment: Mapped[PlannedPayment] = relationship(
+    # Relationships (using string-based forward references)
+    planned_payment: Mapped["PlannedPayment"] = relationship(
         back_populates="projected_transactions",
     )
-    transaction: Mapped[Transaction | None] = relationship(
+    transaction: Mapped["Transaction | None"] = relationship(
         back_populates="projected_transaction",
     )
 
@@ -140,3 +141,8 @@ class ProjectedTransaction(Base):
             name="uq_planned_payment_origin_date",
         ),
     )
+
+
+if TYPE_CHECKING:
+    from app.models.planned_payment import PlannedPayment
+    from app.models.transaction import Transaction

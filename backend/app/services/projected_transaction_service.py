@@ -6,6 +6,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.exceptions import InvalidProjectionStatusError, ProjectionNotFoundError
 from app.models.projected_transaction import ProjectedTransaction
 from app.models.types import (
     ProjectedTransactionStatus,
@@ -62,8 +63,8 @@ class ProjectedTransactionService:
             The updated projected transaction.
 
         Raises:
-            HTTPException 404: If projection not found or not owned by user.
-            HTTPException 409: If status != PENDING.
+            ProjectionNotFoundError: If projection not found or not owned by user.
+            InvalidProjectionStatusError: If status != PENDING.
         """
         projected_transaction = await self.projected_transaction_repo.get_by_user_and_id(
             user_id=user_id,
@@ -71,11 +72,13 @@ class ProjectedTransactionService:
         )
 
         if projected_transaction is None:
-            raise RuntimeError("Projected transaction not found")
+            raise ProjectionNotFoundError(str(projected_transaction_id))
 
         if projected_transaction.status != ProjectedTransactionStatus.PENDING:
-            raise RuntimeError(
-                f"Cannot update projection with status {projected_transaction.status}"
+            raise InvalidProjectionStatusError(
+                projected_transaction_id=str(projected_transaction.id),
+                status=projected_transaction.status,
+                allowed_statuses=["PENDING"],
             )
 
         # Update only provided fields
@@ -99,7 +102,7 @@ class ProjectedTransactionService:
         user_id: UUID,
         projected_transaction_id: UUID,
         amount: Decimal | None = None,
-        date_: datetime | None = None,
+        date_: date | None = None,
         description: str | None = None,
         category_id: UUID | None = None,
     ) -> tuple[ProjectedTransaction, UUID]:
@@ -120,8 +123,8 @@ class ProjectedTransactionService:
             Tuple of (updated projected transaction, created transaction ID).
 
         Raises:
-            HTTPException 404: If projection not found or not owned by user.
-            HTTPException 409: If status != PENDING.
+            ProjectionNotFoundError: If projection not found or not owned by user.
+            InvalidProjectionStatusError: If status != PENDING.
         """
         projected_transaction = await self.projected_transaction_repo.get_by_user_and_id(
             user_id=user_id,
@@ -129,11 +132,13 @@ class ProjectedTransactionService:
         )
 
         if projected_transaction is None:
-            raise RuntimeError("Projected transaction not found")
+            raise ProjectionNotFoundError(str(projected_transaction_id))
 
         if projected_transaction.status != ProjectedTransactionStatus.PENDING:
-            raise RuntimeError(
-                f"Cannot confirm projection with status {projected_transaction.status}"
+            raise InvalidProjectionStatusError(
+                projected_transaction_id=str(projected_transaction.id),
+                status=projected_transaction.status,
+                allowed_statuses=["PENDING"],
             )
 
         # Use projected values as defaults, override if provided
@@ -141,7 +146,7 @@ class ProjectedTransactionService:
             amount if amount is not None else projected_transaction.projected_amount
         )
         confirm_date = (
-            date_.date() if date_ is not None else projected_transaction.projected_date
+            date_ if date_ is not None else projected_transaction.projected_date
         )
         confirm_description = (
             description
@@ -201,8 +206,8 @@ class ProjectedTransactionService:
             The updated projected transaction.
 
         Raises:
-            HTTPException 404: If projection not found or not owned by user.
-            HTTPException 409: If status != PENDING.
+            ProjectionNotFoundError: If projection not found or not owned by user.
+            InvalidProjectionStatusError: If status != PENDING.
         """
         projected_transaction = await self.projected_transaction_repo.get_by_user_and_id(
             user_id=user_id,
@@ -210,11 +215,13 @@ class ProjectedTransactionService:
         )
 
         if projected_transaction is None:
-            raise RuntimeError("Projected transaction not found")
+            raise ProjectionNotFoundError(str(projected_transaction_id))
 
         if projected_transaction.status != ProjectedTransactionStatus.PENDING:
-            raise RuntimeError(
-                f"Cannot skip projection with status {projected_transaction.status}"
+            raise InvalidProjectionStatusError(
+                projected_transaction_id=str(projected_transaction.id),
+                status=projected_transaction.status,
+                allowed_statuses=["PENDING"],
             )
 
         resolved_at = datetime.now(projected_transaction.created_at.tzinfo)
@@ -262,18 +269,9 @@ class ProjectedTransactionService:
         Returns:
             List of projected transactions matching the filters.
         """
-        if status is not None:
-            return await self.projected_transaction_repo.get_by_status(
-                user_id=user_id,
-                status=status,
-            )
-        elif from_date is not None or to_date is not None:
-            from_date = from_date or date.min
-            to_date = to_date or date.max
-            return await self.projected_transaction_repo.get_by_date_range(
-                user_id=user_id,
-                from_date=from_date,
-                to_date=to_date,
-            )
-        else:
-            return await self.projected_transaction_repo.get_by_user(user_id=user_id)
+        return await self.projected_transaction_repo.get_filtered(
+            user_id=user_id,
+            status=status,
+            from_date=from_date,
+            to_date=to_date,
+        )
