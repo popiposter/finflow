@@ -24,7 +24,7 @@ Backend feature foundation is in place: authentication, core finance domain, par
 
 ## Next likely steps
 
-- Scheduler-facing planned-payment execution flow (Issue #18 dependency).
+- Scheduler-facing follow-up for planned payments and forecast generation after projected-transactions rollout.
 - Reporting refinement after product feedback on response shapes and aggregation semantics.
 - Additional API and integration coverage only where the roadmap explicitly calls for it.
 - Keep process guidance compact and prefer scripts plus docs over long ritual prompts.
