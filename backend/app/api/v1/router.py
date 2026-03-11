@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     accounts,
     auth,
+    cashflow,
     categories,
     health,
     planned_payments,
@@ -20,6 +21,7 @@ router.include_router(auth.router)
 router.include_router(accounts.router)
 router.include_router(categories.router)
 router.include_router(transactions.router)
+router.include_router(cashflow.router)
 router.include_router(planned_payments.router)
 router.include_router(projected_transactions.router)
 router.include_router(reports.router)
