@@ -7,14 +7,17 @@ from fastapi import FastAPI
 
 from app.api.v1.router import router
 from app.core.config import settings
+from app.scheduler import ProjectionSchedulerManager
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan context manager."""
     # Startup tasks
+    await app.state.scheduler_manager.start()
     yield
     # Shutdown tasks
+    await app.state.scheduler_manager.shutdown()
 
 
 def create_app() -> FastAPI:
@@ -26,6 +29,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    app.state.scheduler_manager = ProjectionSchedulerManager()
     app.include_router(router)
 
     return app

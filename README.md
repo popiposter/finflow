@@ -15,8 +15,9 @@ FinFlow is a finance backend under active product development.
 - Finance domain models for accounts, categories, transactions, and planned payments.
 - Parse-and-create transaction ingestion.
 - Planned payments Stage 1 (CRUD, generation, idempotency).
-- Planned payments Stage 2 (scheduler-facing execution flow).
+- Planned payments Stage 2 (scheduler-facing projection generation flow).
 - Projected transactions Stage 1 (forecast layer, lifecycle, confirmation/skip flow).
+- Projection scheduler Stage 1 (daily projection generation and scheduler health endpoint).
 - Reporting Stage 1.
 - Finance CRUD Stage 3 for accounts, categories, and transactions.
 

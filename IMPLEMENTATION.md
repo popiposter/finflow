@@ -16,6 +16,7 @@ Backend feature foundation is in place: authentication, core finance domain, par
 - Transaction ingestion from free-form text with authenticated parse-and-create flow.
 - Planned payments Stage 1: model, CRUD, recurring generation, source-linked generated transactions, and idempotency protection.
 - Projected transactions Stage 1: model with status lifecycle, forecast layer between planned payments and transactions, and API endpoints for projection management.
+- Projection scheduler Stage 1: scheduled generation of pending projected transactions from planned payments, legacy execute flow wired to projections, and scheduler health endpoint.
 - Reporting Stage 1: `GET /api/v1/reports/pnl`, `GET /api/v1/reports/cashflow`, aggregation services, grouping support, and smoke coverage.
 - Finance CRUD Stage 3: CRUD endpoints for accounts, categories, and transactions, plus repository and API coverage.
 - Category hierarchy validation and accrual-vs-cash transaction behavior coverage.
@@ -24,7 +25,8 @@ Backend feature foundation is in place: authentication, core finance domain, par
 
 ## Next likely steps
 
-- Scheduler-facing follow-up for planned payments and forecast generation after projected-transactions rollout.
+- Cashflow ledger report and forecast summary on top of actual + projected rows.
 - Reporting refinement after product feedback on response shapes and aggregation semantics.
+- Planned payments template cleanup now that recurring execution generates projections first.
 - Additional API and integration coverage only where the roadmap explicitly calls for it.
 - Keep process guidance compact and prefer scripts plus docs over long ritual prompts.

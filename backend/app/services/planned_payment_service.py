@@ -1,4 +1,4 @@
-"""Service for generating recurring transactions from planned payments."""
+"""Legacy service for generating recurring transactions from planned payments."""
 
 from datetime import date, datetime, timedelta
 from uuid import UUID
@@ -9,11 +9,41 @@ from app.models.planned_payment import PlannedPayment
 from app.models.types import Recurrence, TransactionType
 from app.repositories.planned_payment_repository import PlannedPaymentRepository
 from app.repositories.transaction_repository import TransactionRepository
-from app.schemas.finance import RecurrenceGenerationResult
+from app.schemas.finance import ProjectionGenerationResult
+
+
+def compute_next_due_date(
+    start_date: date,
+    current_due: date,
+    recurrence: Recurrence,
+) -> date:
+    """Compute the next due date based on a recurrence rule."""
+    match recurrence:
+        case Recurrence.DAILY:
+            return current_due + timedelta(days=1)
+        case Recurrence.WEEKLY:
+            return current_due + timedelta(weeks=1)
+        case Recurrence.MONTHLY:
+            year = current_due.year
+            month = current_due.month + 1
+            if month > 12:
+                month = 1
+                year += 1
+
+            if month == 12:
+                next_month_last_day = 31
+            else:
+                next_next_month_first = date(year, month + 1, 1)
+                next_month_last_day = (next_next_month_first - timedelta(days=1)).day
+
+            day = min(start_date.day, next_month_last_day)
+            return date(year, month, day)
+        case _:
+            raise ValueError(f"Unknown recurrence: {recurrence}")
 
 
 class PlannedPaymentGenerationService:
-    """Service for generating recurring transactions from planned payments.
+    """Legacy service for generating actual transactions from planned payments.
 
     This service:
     - Finds planned payments that are due
@@ -42,7 +72,7 @@ class PlannedPaymentGenerationService:
         user_id: UUID | None = None,
         as_of_date: date | None = None,
         max_occurrences: int = 100,
-    ) -> list[RecurrenceGenerationResult]:
+    ) -> list[ProjectionGenerationResult]:
         """Generate transactions for all due planned payments.
 
         Args:
@@ -70,7 +100,7 @@ class PlannedPaymentGenerationService:
                 limit=max_occurrences,
             )
 
-        results: list[RecurrenceGenerationResult] = []
+        results: list[ProjectionGenerationResult] = []
 
         for payment in due_payments[:max_occurrences]:
             result = await self._generate_for_planned_payment(payment, as_of_date)
@@ -82,7 +112,7 @@ class PlannedPaymentGenerationService:
         self,
         payment: PlannedPayment,
         as_of_date: date,
-    ) -> RecurrenceGenerationResult:
+    ) -> ProjectionGenerationResult:
         """Generate transactions for a single planned payment.
 
         For MVP, we generate exactly one transaction per call for the current
@@ -121,9 +151,9 @@ class PlannedPaymentGenerationService:
         payment.next_due_at = next_due
         await self.planned_payment_repo.update(payment)
 
-        return RecurrenceGenerationResult(
+        return ProjectionGenerationResult(
             planned_payment_id=payment.id,
-            generated_transactions=[transaction.id],
+            generated_projections=[transaction.id],
             next_due_at=next_due,
         )
 
@@ -143,34 +173,4 @@ class PlannedPaymentGenerationService:
         Returns:
             The computed next due date.
         """
-        match recurrence:
-            case Recurrence.DAILY:
-                return current_due + timedelta(days=1)
-            case Recurrence.WEEKLY:
-                return current_due + timedelta(weeks=1)
-            case Recurrence.MONTHLY:
-                # Handle month-end edge cases
-                year = current_due.year
-                month = current_due.month + 1
-                if month > 12:
-                    month = 1
-                    year += 1
-
-                # Get the last day of the target month
-                if month == 12:
-                    next_month_last_day = 31
-                else:
-                    # Get first day of next next month, then subtract one day
-                    next_next_month_first = date(year, month + 1, 1)
-                    next_month_last_day = (
-                        next_next_month_first - timedelta(days=1)
-                    ).day
-
-                # Use the same day as start_date if possible,
-                # or the last day of month if start day doesn't exist
-                day = min(start_date.day, next_month_last_day)
-
-                return date(year, month, day)
-            case _:
-                # Should not happen with enum validation
-                raise ValueError(f"Unknown recurrence: {recurrence}")
+        return compute_next_due_date(start_date, current_due, recurrence)

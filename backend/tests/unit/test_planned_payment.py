@@ -9,7 +9,7 @@ from app.models.types import Recurrence
 from app.schemas.finance import (
     PlannedPaymentCreate,
     PlannedPaymentOut,
-    RecurrenceGenerationResult,
+    ProjectionGenerationResult,
 )
 
 
@@ -139,11 +139,11 @@ class TestPlannedPaymentSchemas:
         assert schema.description == "Weekly rent"
         assert schema.end_date == date(2025, 3, 15)
 
-    def test_recurrence_generation_result_schema(self) -> None:
-        """Test RecurrenceGenerationResult schema."""
-        result = RecurrenceGenerationResult(
+    def test_projection_generation_result_schema(self) -> None:
+        """Test ProjectionGenerationResult schema."""
+        result = ProjectionGenerationResult(
             planned_payment_id=UUID("12345678-1234-1234-1234-123456789012"),
-            generated_transactions=[
+            generated_projections=[
                 UUID("a2345678-1234-1234-1234-123456789012"),
                 UUID("b2345678-1234-1234-1234-123456789012"),
             ],
@@ -151,7 +151,7 @@ class TestPlannedPaymentSchemas:
             skipped_occurrences=0,
         )
 
-        assert len(result.generated_transactions) == 2
+        assert len(result.generated_projections) == 2
         assert result.next_due_at == date(2024, 3, 1)
         assert result.skipped_occurrences == 0
 

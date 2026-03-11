@@ -1,6 +1,8 @@
-"""Health check endpoint."""
+"""Health check endpoints."""
 
-from fastapi import APIRouter
+from typing import cast
+
+from fastapi import APIRouter, Request
 
 from app.core.config import settings
 
@@ -15,3 +17,10 @@ async def health_check() -> dict[str, str]:
         "app": settings.app_title,
         "version": settings.app_version,
     }
+
+
+@router.get("/health/scheduler", tags=["system"])
+async def scheduler_health_check(request: Request) -> dict[str, str | None]:
+    """Return scheduler status."""
+    scheduler_manager = request.app.state.scheduler_manager
+    return cast(dict[str, str | None], scheduler_manager.health())

@@ -23,7 +23,9 @@ class ProjectedTransactionRepository:
         """
         self.session = session
 
-    async def get_by_id(self, projected_transaction_id: UUID) -> ProjectedTransaction | None:
+    async def get_by_id(
+        self, projected_transaction_id: UUID
+    ) -> ProjectedTransaction | None:
         """Get a projected transaction by ID.
 
         Args:
@@ -32,9 +34,11 @@ class ProjectedTransactionRepository:
         Returns:
             The projected transaction if found, None otherwise.
         """
-        stmt = select(ProjectedTransaction).where(
-            ProjectedTransaction.id == projected_transaction_id
-        ).options(selectinload(ProjectedTransaction.planned_payment))
+        stmt = (
+            select(ProjectedTransaction)
+            .where(ProjectedTransaction.id == projected_transaction_id)
+            .options(selectinload(ProjectedTransaction.planned_payment))
+        )
         result = await self.session.scalar(stmt)
         return result
 
@@ -70,9 +74,7 @@ class ProjectedTransactionRepository:
         """
         stmt = (
             select(ProjectedTransaction)
-            .where(
-                ProjectedTransaction.planned_payment_id == planned_payment_id
-            )
+            .where(ProjectedTransaction.planned_payment_id == planned_payment_id)
             .options(selectinload(ProjectedTransaction.planned_payment))
             .order_by(ProjectedTransaction.projected_date)
         )
@@ -103,6 +105,23 @@ class ProjectedTransactionRepository:
         result = await self.session.scalars(stmt)
         return list(result.all())
 
+    async def get_by_planned_payment_and_origin_date(
+        self,
+        planned_payment_id: UUID,
+        origin_date: date,
+    ) -> ProjectedTransaction | None:
+        """Get a projection for a planned payment occurrence if it already exists."""
+        stmt = (
+            select(ProjectedTransaction)
+            .where(
+                ProjectedTransaction.planned_payment_id == planned_payment_id,
+                ProjectedTransaction.origin_date == origin_date,
+            )
+            .options(selectinload(ProjectedTransaction.planned_payment))
+        )
+        result = await self.session.scalar(stmt)
+        return result
+
     async def get_by_user_and_id(
         self,
         user_id: UUID,
@@ -117,10 +136,14 @@ class ProjectedTransactionRepository:
         Returns:
             The projected transaction if found, None otherwise.
         """
-        stmt = select(ProjectedTransaction).where(
-            ProjectedTransaction.planned_payment.has(user_id=user_id),
-            ProjectedTransaction.id == projected_transaction_id,
-        ).options(selectinload(ProjectedTransaction.planned_payment))
+        stmt = (
+            select(ProjectedTransaction)
+            .where(
+                ProjectedTransaction.planned_payment.has(user_id=user_id),
+                ProjectedTransaction.id == projected_transaction_id,
+            )
+            .options(selectinload(ProjectedTransaction.planned_payment))
+        )
         result = await self.session.scalar(stmt)
         return result
 
@@ -142,9 +165,11 @@ class ProjectedTransactionRepository:
         Returns:
             List of projected transactions matching the filters.
         """
-        stmt = select(ProjectedTransaction).where(
-            ProjectedTransaction.planned_payment.has(user_id=user_id)
-        ).options(selectinload(ProjectedTransaction.planned_payment))
+        stmt = (
+            select(ProjectedTransaction)
+            .where(ProjectedTransaction.planned_payment.has(user_id=user_id))
+            .options(selectinload(ProjectedTransaction.planned_payment))
+        )
         if status is not None:
             stmt = stmt.where(ProjectedTransaction.status == status)
         if from_date is not None:
@@ -203,7 +228,9 @@ class ProjectedTransactionRepository:
         await self.session.refresh(projected_transaction)
         return projected_transaction
 
-    async def update(self, projected_transaction: ProjectedTransaction) -> ProjectedTransaction:
+    async def update(
+        self, projected_transaction: ProjectedTransaction
+    ) -> ProjectedTransaction:
         """Update a projected transaction.
 
         Args:
