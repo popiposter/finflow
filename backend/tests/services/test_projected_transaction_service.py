@@ -20,7 +20,6 @@ from app.repositories.planned_payment_repository import PlannedPaymentRepository
 from app.repositories.projected_transaction_repository import ProjectedTransactionRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.services.projected_transaction_service import ProjectedTransactionService
-from app.services.planned_payment_service import PlannedPaymentGenerationService
 
 
 class TestProjectedTransactionService:

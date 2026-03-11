@@ -1,4 +1,4 @@
-"""Planned payment model for recurring transaction generation."""
+"""Planned payment model for recurring template defaults."""
 
 from datetime import date, datetime
 from typing import TYPE_CHECKING
@@ -13,30 +13,28 @@ from app.models.types import MONEY_TYPE, Money, Recurrence
 
 if TYPE_CHECKING:
     from app.models.projected_transaction import ProjectedTransaction
-    from app.models.transaction import Transaction
 
 
 class PlannedPayment(Base):
-    """Planned payment model for recurring financial obligations.
+    """Planned payment model for recurring financial templates.
 
-    Planned payments are scheduled transactions that can be automatically
-    generated on a recurring basis. Common use cases include:
+    Planned payments are reusable templates for forecast-first cashflow.
+    Common use cases include:
     - Rent payments
     - Subscription fees
     - Utility bills
     - Loan repayments
 
-    Each planned payment belongs to a user and references:
-    - account_id: Which account the transactions affect
-    - category_id: How to categorize generated transactions (optional)
-    - amount: Fixed amount for each occurrence
+    Each planned payment belongs to a user and stores defaults for future
+    projected occurrences:
+    - account_id: Which account future projections affect
+    - category_id: Default classification for generated projections (optional)
+    - amount: Default amount for each occurrence
 
-    The recurrence rule defines how often transactions are generated.
-    The active flag allows pausing generation without deleting the plan.
-
-    Generated transactions reference their source planned payment via
-    the planned_occurrence_id to enable idempotent generation and
-    tracking of recurring obligations.
+    The recurrence rule defines how often a new projected transaction is
+    generated. The active flag allows pausing the template without deleting it.
+    Actual transactions may still retain planned_payment_id as audit metadata,
+    but templates generate projections first.
     """
 
     __tablename__ = "planned_payments"
@@ -89,7 +87,7 @@ class PlannedPayment(Base):
         default=None,
         index=True,
     )
-    # Next date when a transaction should be generated
+    # Next date when a projected occurrence should be generated
     next_due_at: Mapped[date] = mapped_column(
         nullable=False,
         index=True,
@@ -100,12 +98,7 @@ class PlannedPayment(Base):
         default=True,
         index=True,
     )
-    # Generated transactions for this planned payment
-    transactions: Mapped[list["Transaction"]] = relationship(
-        back_populates="planned_payment",
-        cascade="all, delete-orphan",
-    )
-    # Projected transactions for this planned payment
+    # Generated projected occurrences for this template
     projected_transactions: Mapped[list["ProjectedTransaction"]] = relationship(
         back_populates="planned_payment",
         cascade="all, delete-orphan",

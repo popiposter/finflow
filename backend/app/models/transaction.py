@@ -75,15 +75,15 @@ class Transaction(Base):
         nullable=True,
         index=True,
     )
-    # Source planned payment for recurring transactions (optional)
+    # Source planned-payment template for audit linkage (optional)
     planned_payment_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("planned_payments.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    # Relationship to source planned payment
+    # Unidirectional audit link back to the source template
     planned_payment: Mapped[PlannedPayment | None] = relationship(
-        back_populates="transactions",
+        foreign_keys=[planned_payment_id],
     )
     # Source projected transaction for forecast layer (optional)
     projected_transaction_id: Mapped[UUID | None] = mapped_column(
