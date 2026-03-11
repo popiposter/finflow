@@ -15,6 +15,7 @@ from app.db import Base, async_session_factory, engine
 from app.main import app
 from app.models.account import Account
 from app.models.category import Category
+from app.models.user import User
 from app.models.types import AccountType, CategoryType
 
 
@@ -164,13 +165,22 @@ async def test_account(
 @pytest_asyncio.fixture
 async def test_account_with_user(
     db_session: AsyncSession,
-) -> AsyncGenerator[tuple[Account, UUID], None]:
+) -> AsyncGenerator[tuple[UUID, Account], None]:
     """Create a test account with user_id for planned payment tests.
 
     Returns:
-        Tuple of (account, user_id).
+        Tuple of (user_id, account).
     """
     user_id = uuid4()
+    user = User(
+        id=user_id,
+        email=f"{user_id}@example.com",
+        hashed_password="test-hash",
+        is_active=True,
+    )
+    db_session.add(user)
+    await db_session.flush()
+
     account = Account(
         user_id=user_id,
         name="Test Checking Account",
@@ -181,8 +191,9 @@ async def test_account_with_user(
     db_session.add(account)
     await db_session.flush()
     await db_session.refresh(account)
-    yield account, user_id
+    yield user_id, account
     await db_session.delete(account)
+    await db_session.delete(user)
     await db_session.commit()
 
 

@@ -289,6 +289,7 @@ class TestUpdateProjectedTransaction:
                 user_id=user_id,
                 projected_transaction_id=projected.id,
             )
+            await session.commit()
 
         # Try to update the confirmed projection
         update_response = await async_client.patch(
@@ -379,7 +380,7 @@ class TestConfirmProjectedTransaction:
         transaction_data = transaction_response.json()
         assert transaction_data["amount"] == "1000.00"
         assert transaction_data["planned_payment_id"] == payment_id
-        assert transaction_data["projected_transaction_id"] == transaction_id
+        assert transaction_data["projected_transaction_id"] == str(projected.id)
 
     async def test_confirm_projected_transaction_with_override(
         self,
@@ -519,6 +520,7 @@ class TestConfirmProjectedTransaction:
                 user_id=user_id,
                 projected_transaction_id=projected.id,
             )
+            await session.commit()
 
         # Try to confirm the skipped projection
         confirm_response = await async_client.post(
@@ -656,6 +658,7 @@ class TestSkipProjectedTransaction:
                 user_id=user_id,
                 projected_transaction_id=projected.id,
             )
+            await session.commit()
 
         # Try to skip the confirmed projection
         skip_response = await async_client.post(

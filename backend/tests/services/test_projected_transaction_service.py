@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from app.exceptions import InvalidProjectionStatusError
 from app.models.projected_transaction import ProjectedTransaction
 from app.models.types import (
     AccountType,
@@ -118,7 +119,7 @@ class TestProjectedTransactionService:
         )
 
         # Try to update the confirmed projection
-        with pytest.raises(RuntimeError, match="Cannot update projection"):
+        with pytest.raises(InvalidProjectionStatusError):
             await service.update_projection(
                 user_id=user_id,
                 projected_transaction_id=projected.id,
@@ -330,7 +331,7 @@ class TestProjectedTransactionService:
         )
 
         # Try to skip the confirmed projection
-        with pytest.raises(RuntimeError, match="Cannot skip projection"):
+        with pytest.raises(InvalidProjectionStatusError):
             await service.skip_projection(
                 user_id=user_id,
                 projected_transaction_id=projected.id,
@@ -382,7 +383,7 @@ class TestProjectedTransactionService:
         assert updated1.version == 2
 
         # Second attempt should fail because status is now CONFIRMED
-        with pytest.raises(RuntimeError, match="Cannot confirm projection"):
+        with pytest.raises(InvalidProjectionStatusError):
             await service.confirm_projection(
                 user_id=user_id,
                 projected_transaction_id=projected.id,

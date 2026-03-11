@@ -6,6 +6,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.projected_transaction import ProjectedTransaction
 from app.models.types import ProjectedTransactionStatus, ProjectedTransactionType
@@ -33,7 +34,7 @@ class ProjectedTransactionRepository:
         """
         stmt = select(ProjectedTransaction).where(
             ProjectedTransaction.id == projected_transaction_id
-        )
+        ).options(selectinload(ProjectedTransaction.planned_payment))
         result = await self.session.scalar(stmt)
         return result
 
@@ -49,6 +50,7 @@ class ProjectedTransactionRepository:
         stmt = (
             select(ProjectedTransaction)
             .where(ProjectedTransaction.planned_payment.has(user_id=user_id))
+            .options(selectinload(ProjectedTransaction.planned_payment))
             .order_by(ProjectedTransaction.projected_date)
         )
         result = await self.session.scalars(stmt)
@@ -71,6 +73,7 @@ class ProjectedTransactionRepository:
             .where(
                 ProjectedTransaction.planned_payment_id == planned_payment_id
             )
+            .options(selectinload(ProjectedTransaction.planned_payment))
             .order_by(ProjectedTransaction.projected_date)
         )
         result = await self.session.scalars(stmt)
@@ -94,6 +97,7 @@ class ProjectedTransactionRepository:
                 ProjectedTransaction.planned_payment_id == planned_payment_id,
                 ProjectedTransaction.status == ProjectedTransactionStatus.PENDING,
             )
+            .options(selectinload(ProjectedTransaction.planned_payment))
             .order_by(ProjectedTransaction.projected_date)
         )
         result = await self.session.scalars(stmt)
@@ -116,7 +120,7 @@ class ProjectedTransactionRepository:
         stmt = select(ProjectedTransaction).where(
             ProjectedTransaction.planned_payment.has(user_id=user_id),
             ProjectedTransaction.id == projected_transaction_id,
-        )
+        ).options(selectinload(ProjectedTransaction.planned_payment))
         result = await self.session.scalar(stmt)
         return result
 
@@ -140,7 +144,7 @@ class ProjectedTransactionRepository:
         """
         stmt = select(ProjectedTransaction).where(
             ProjectedTransaction.planned_payment.has(user_id=user_id)
-        )
+        ).options(selectinload(ProjectedTransaction.planned_payment))
         if status is not None:
             stmt = stmt.where(ProjectedTransaction.status == status)
         if from_date is not None:

@@ -1,6 +1,6 @@
 """Service for managing projected transactions."""
 
-from datetime import date, datetime
+from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -102,7 +102,7 @@ class ProjectedTransactionService:
         user_id: UUID,
         projected_transaction_id: UUID,
         amount: Decimal | None = None,
-        date_: date | None = None,
+        date_: date | datetime | None = None,
         description: str | None = None,
         category_id: UUID | None = None,
     ) -> tuple[ProjectedTransaction, UUID]:
@@ -148,6 +148,8 @@ class ProjectedTransactionService:
         confirm_date = (
             date_ if date_ is not None else projected_transaction.projected_date
         )
+        if isinstance(confirm_date, datetime):
+            confirm_date = confirm_date.date()
         confirm_description = (
             description
             if description is not None
@@ -172,8 +174,8 @@ class ProjectedTransactionService:
             account_id=projected_transaction.planned_payment.account_id,
             amount=confirm_amount,
             type_=transaction_type,
-            date_accrual=datetime.combine(confirm_date, datetime.min.time()),
-            date_cash=datetime.combine(confirm_date, datetime.min.time()),
+            date_accrual=datetime.combine(confirm_date, time.min, tzinfo=timezone.utc),
+            date_cash=datetime.combine(confirm_date, time.min, tzinfo=timezone.utc),
             category_id=confirm_category_id,
             planned_payment_id=projected_transaction.planned_payment_id,
             projected_transaction_id=projected_transaction.id,

@@ -103,6 +103,7 @@ class ProjectedTransaction(Base):
 
     # When the projection was resolved (CONFIRMED or SKIPPED)
     resolved_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True),
         nullable=True,
         default=None,
     )
@@ -130,7 +131,7 @@ class ProjectedTransaction(Base):
         back_populates="projected_transactions",
     )
     transaction: Mapped["Transaction | None"] = relationship(
-        back_populates="projected_transaction",
+        foreign_keys=[transaction_id],
     )
 
     # Prevent duplicate projections for same planned payment on same date

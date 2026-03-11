@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from pydantic import UUID4
 
 from app.api.dependencies.auth import get_current_user
@@ -74,8 +74,8 @@ async def get_service(
 )
 async def list_projected_transactions(
     status: ProjectedTransactionStatus | None = None,
-    from_date: date | None = None,
-    to_date: date | None = None,
+    from_date: date | None = Query(default=None, alias="from"),
+    to_date: date | None = Query(default=None, alias="to"),
     current_user: UserOut = Depends(get_current_user),
     service: ProjectedTransactionService = Depends(get_service),
 ) -> list[ProjectedTransactionOut]:
