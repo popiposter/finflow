@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.exceptions import InvalidProjectionStatusError
+from app.exceptions import AccountNotFoundError, InvalidProjectionStatusError
 from app.models.projected_transaction import ProjectedTransaction
 from app.models.types import (
     AccountType,
@@ -20,6 +20,7 @@ from app.repositories.planned_payment_repository import PlannedPaymentRepository
 from app.repositories.projected_transaction_repository import ProjectedTransactionRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.services.projected_transaction_service import ProjectedTransactionService
+from app.models.user import User
 
 
 class TestProjectedTransactionService:
@@ -575,3 +576,60 @@ class TestProjectedTransactionService:
         # Projected should be updated
         assert updated.projected_amount == Decimal("1500.00")
         assert updated.projected_description == "Updated description"
+
+    async def test_confirm_projection_rejects_foreign_account_linkage(
+        self,
+        db_session,
+        test_account_with_user: tuple,
+    ) -> None:
+        """Test confirm fails if planned payment points to another user's account."""
+        user_id, _ = test_account_with_user
+
+        other_user_id = uuid4()
+        other_user = User(
+            id=other_user_id,
+            email=f"{other_user_id}@example.com",
+            hashed_password="test-hash",
+            is_active=True,
+        )
+        db_session.add(other_user)
+        await db_session.flush()
+
+        account_repo = AccountRepository(db_session)
+        foreign_account = await account_repo.create(
+            user_id=other_user_id,
+            name="Foreign Account",
+            type_=AccountType.CHECKING,
+        )
+
+        planned_payment_repo = PlannedPaymentRepository(db_session)
+        planned_payment = await planned_payment_repo.create(
+            user_id=user_id,
+            account_id=foreign_account.id,
+            amount=Decimal("1000.00"),
+            recurrence="monthly",
+            start_date=date(2024, 1, 1),
+            next_due_at=date(2024, 1, 15),
+            description="Monthly rent",
+        )
+
+        projected_repo = ProjectedTransactionRepository(db_session)
+        projected = await projected_repo.create(
+            planned_payment_id=planned_payment.id,
+            origin_date=date(2024, 1, 15),
+            origin_amount=Decimal("1000"),
+            origin_description="Monthly rent",
+            origin_category_id=None,
+            type_=ProjectedTransactionType.EXPENSE,
+            projected_date=date(2024, 1, 15),
+            projected_amount=Decimal("1000"),
+            projected_description="Monthly rent",
+            projected_category_id=None,
+        )
+
+        service = ProjectedTransactionService(db_session)
+        with pytest.raises(AccountNotFoundError):
+            await service.confirm_projection(
+                user_id=user_id,
+                projected_transaction_id=projected.id,
+            )

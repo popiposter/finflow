@@ -9,6 +9,22 @@ class TransactionNotFoundError(Exception):
         super().__init__(f"Transaction not found: {transaction_id}")
 
 
+class AccountNotFoundError(Exception):
+    """Raised when an account is not found or not owned by the user."""
+
+    def __init__(self, account_id: str):
+        self.account_id = account_id
+        super().__init__(f"Account not found: {account_id}")
+
+
+class CategoryNotFoundError(Exception):
+    """Raised when a category is not found or not owned by the user."""
+
+    def __init__(self, category_id: str):
+        self.category_id = category_id
+        super().__init__(f"Category not found: {category_id}")
+
+
 class ProjectionNotFoundError(Exception):
     """Raised when a projected transaction is not found."""
 
@@ -45,6 +61,8 @@ class ProjectionVersionMismatchError(Exception):
 
 __all__ = [
     "TransactionNotFoundError",
+    "AccountNotFoundError",
+    "CategoryNotFoundError",
     "ProjectionNotFoundError",
     "InvalidProjectionStatusError",
     "ProjectionVersionMismatchError",

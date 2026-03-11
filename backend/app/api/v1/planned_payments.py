@@ -6,6 +6,8 @@ from typing import AsyncGenerator
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies.auth import get_current_user
+from app.repositories.account_repository import AccountRepository
+from app.repositories.category_repository import CategoryRepository
 from app.repositories.planned_payment_repository import PlannedPaymentRepository
 from app.schemas.auth import UserOut
 from app.schemas.finance import (
@@ -40,6 +42,36 @@ async def get_repo(
             raise
 
 
+async def get_account_repo(
+    current_user: UserOut = Depends(get_current_user),
+) -> AsyncGenerator[AccountRepository, None]:
+    """Get account repository with database session."""
+    from app.db.session import async_session_factory
+
+    async with async_session_factory() as session:
+        try:
+            yield AccountRepository(session)
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
+async def get_category_repo(
+    current_user: UserOut = Depends(get_current_user),
+) -> AsyncGenerator[CategoryRepository, None]:
+    """Get category repository with database session."""
+    from app.db.session import async_session_factory
+
+    async with async_session_factory() as session:
+        try:
+            yield CategoryRepository(session)
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
 async def get_generation_service() -> AsyncGenerator[ProjectionSchedulerService, None]:
     """Get projection generation service with database session.
 
@@ -66,6 +98,8 @@ async def create_planned_payment(
     payment_data: PlannedPaymentCreate,
     current_user: UserOut = Depends(get_current_user),
     repo: PlannedPaymentRepository = Depends(get_repo),
+    account_repo: AccountRepository = Depends(get_account_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
 ) -> PlannedPaymentOut:
     """Create a new planned-payment template.
 
@@ -77,6 +111,21 @@ async def create_planned_payment(
     Returns:
         Created planned-payment template.
     """
+    account = await account_repo.get_by_id(payment_data.account_id)
+    if account is None or account.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found",
+        )
+
+    if payment_data.category_id is not None:
+        category = await category_repo.get_by_id(payment_data.category_id)
+        if category is None or category.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Category not found",
+            )
+
     payment = await repo.create(
         user_id=current_user.id,
         account_id=payment_data.account_id,
@@ -158,6 +207,8 @@ async def update_planned_payment(
     payment_data: PlannedPaymentCreate,
     current_user: UserOut = Depends(get_current_user),
     repo: PlannedPaymentRepository = Depends(get_repo),
+    account_repo: AccountRepository = Depends(get_account_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
 ) -> PlannedPaymentOut:
     """Update a planned-payment template.
 
@@ -183,6 +234,21 @@ async def update_planned_payment(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Planned payment not found",
         )
+
+    account = await account_repo.get_by_id(payment_data.account_id)
+    if account is None or account.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found",
+        )
+
+    if payment_data.category_id is not None:
+        category = await category_repo.get_by_id(payment_data.category_id)
+        if category is None or category.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Category not found",
+            )
 
     payment.account_id = payment_data.account_id
     payment.amount = payment_data.amount

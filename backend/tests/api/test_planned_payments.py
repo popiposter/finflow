@@ -158,6 +158,55 @@ class TestCreatePlannedPayment:
 
         assert response.status_code == 401
 
+    async def test_create_planned_payment_rejects_foreign_account(
+        self,
+        async_client: AsyncClient,
+    ) -> None:
+        """Test creating planned payment with another user's account is rejected."""
+        # User A
+        await async_client.post(
+            "/api/v1/auth/register",
+            json={"email": "pp-owner-a@example.com", "password": "SecurePass123!"},
+        )
+        login_a = await async_client.post(
+            "/api/v1/auth/login",
+            json={"email": "pp-owner-a@example.com", "password": "SecurePass123!"},
+        )
+        token_a = login_a.json()["access_token"]
+
+        # User B (owns account)
+        reg_b = await async_client.post(
+            "/api/v1/auth/register",
+            json={"email": "pp-owner-b@example.com", "password": "SecurePass123!"},
+        )
+        user_b_id = reg_b.json()["id"]
+
+        from app.models.types import AccountType
+        from app.repositories.account_repository import AccountRepository
+
+        async with async_session_factory() as session:
+            account_repo = AccountRepository(session)
+            foreign_account = await account_repo.create(
+                user_id=user_b_id,
+                name="Foreign Account",
+                type_=AccountType.CHECKING,
+            )
+            await session.commit()
+
+        response = await async_client.post(
+            "/api/v1/planned-payments",
+            headers={"Authorization": f"Bearer {token_a}"},
+            json={
+                "account_id": str(foreign_account.id),
+                "amount": "100.00",
+                "recurrence": "monthly",
+                "start_date": "2024-01-01",
+            },
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Account not found"
+
 
 @pytest.mark.api
 class TestListPlannedPayments:
@@ -247,6 +296,78 @@ class TestUpdatePlannedPayment:
         )
 
         assert response.status_code == 404
+
+    async def test_update_planned_payment_rejects_foreign_category(
+        self,
+        async_client: AsyncClient,
+    ) -> None:
+        """Test updating planned payment with another user's category is rejected."""
+        # Owner user setup
+        reg_owner = await async_client.post(
+            "/api/v1/auth/register",
+            json={"email": "pp-update-owner@example.com", "password": "SecurePass123!"},
+        )
+        owner_id = reg_owner.json()["id"]
+        login_owner = await async_client.post(
+            "/api/v1/auth/login",
+            json={"email": "pp-update-owner@example.com", "password": "SecurePass123!"},
+        )
+        owner_token = login_owner.json()["access_token"]
+
+        # Another user for foreign category
+        reg_other = await async_client.post(
+            "/api/v1/auth/register",
+            json={"email": "pp-update-other@example.com", "password": "SecurePass123!"},
+        )
+        other_id = reg_other.json()["id"]
+
+        from app.models.types import AccountType, CategoryType
+        from app.repositories.account_repository import AccountRepository
+        from app.repositories.category_repository import CategoryRepository
+
+        async with async_session_factory() as session:
+            account_repo = AccountRepository(session)
+            owner_account = await account_repo.create(
+                user_id=owner_id,
+                name="Owner Account",
+                type_=AccountType.CHECKING,
+            )
+
+            category_repo = CategoryRepository(session)
+            foreign_category = await category_repo.create(
+                user_id=other_id,
+                name="Foreign Category",
+                type_=CategoryType.EXPENSE,
+            )
+            await session.commit()
+
+        create_response = await async_client.post(
+            "/api/v1/planned-payments",
+            headers={"Authorization": f"Bearer {owner_token}"},
+            json={
+                "account_id": str(owner_account.id),
+                "amount": "250.00",
+                "recurrence": "monthly",
+                "start_date": "2024-01-01",
+            },
+        )
+        assert create_response.status_code == 201
+        payment_id = create_response.json()["id"]
+
+        update_response = await async_client.put(
+            f"/api/v1/planned-payments/{payment_id}",
+            headers={"Authorization": f"Bearer {owner_token}"},
+            json={
+                "account_id": str(owner_account.id),
+                "category_id": str(foreign_category.id),
+                "amount": "260.00",
+                "recurrence": "monthly",
+                "start_date": "2024-01-01",
+            },
+        )
+
+        assert update_response.status_code == 404
+        assert update_response.json()["detail"] == "Category not found"
 
 
 @pytest.mark.api
