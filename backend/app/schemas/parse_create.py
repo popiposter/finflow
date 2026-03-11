@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from app.models.types import TransactionType
+
 
 class ParseRequest(BaseModel):
     """Request schema for parse-and-create endpoint."""
@@ -31,6 +33,9 @@ class ParsedResult(BaseModel):
 
     category_name: str | None = None
     """Extracted category name if detectable from text."""
+
+    transaction_type: TransactionType = TransactionType.EXPENSE
+    """Inferred transaction type from parser heuristics."""
 
     original_text: str
     """Original text that was parsed (always preserved)."""

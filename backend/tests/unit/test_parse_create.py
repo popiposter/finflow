@@ -12,6 +12,7 @@ from app.services.parse_service import (
     extract_amount,
     extract_category,
     extract_description,
+    infer_transaction_type,
     parse_text,
 )
 
@@ -57,9 +58,15 @@ class TestAmountExtraction:
     def test_extract_amount_multiple_numbers(self) -> None:
         """Test extraction from text with multiple numbers."""
         result = extract_amount("покупки 1500 и 300 рублей")
-        # Should extract the first amount found
+        # Prefer the amount explicitly marked as money.
         assert result is not None
-        assert result == 1500
+        assert result == 300
+
+    def test_extract_amount_prefers_last_amount_without_currency(self) -> None:
+        """When no currency marker is present, prefer the trailing amount."""
+        result = extract_amount("2 кофе по 300")
+        assert result is not None
+        assert result == 300
 
 
 class TestCategoryExtraction:
@@ -132,6 +139,38 @@ class TestParseText:
         # Description should still be extracted
         assert result.description == "покупки в магазине"
 
+    def test_parse_text_income_keywords(self) -> None:
+        """Income phrases should infer income transaction type."""
+        result = parse_text("зарплата 120000")
+
+        assert result.amount == 120000
+        assert result.category_name == "Доход"
+        assert result.transaction_type == "income"
+
+    def test_parse_text_refund_keywords(self) -> None:
+        """Refund phrases should infer refund transaction type."""
+        result = parse_text("возврат 1990 руб")
+
+        assert result.amount == 1990
+        assert result.category_name == "Возврат"
+        assert result.transaction_type == "refund"
+
+
+class TestTypeInference:
+    """Tests for transaction type inference heuristics."""
+
+    def test_infer_income_type(self) -> None:
+        """Income keywords should map to income."""
+        assert infer_transaction_type("премия 5000") == "income"
+
+    def test_infer_refund_type(self) -> None:
+        """Refund keywords should map to refund."""
+        assert infer_transaction_type("кэшбэк 500") == "refund"
+
+    def test_infer_expense_type_by_default(self) -> None:
+        """Unknown phrases should default to expense."""
+        assert infer_transaction_type("обед 700") == "expense"
+
 
 class TestParseEndpoint:
     """Tests for parse-and-create endpoint behavior."""
@@ -152,6 +191,7 @@ class TestParseEndpoint:
             amount=1500,
             description="продукты во вкусвилле",
             category_name="Продукты",
+            transaction_type="expense",
             original_text="продукты во вкусвилле 1500 рублей",
         )
 

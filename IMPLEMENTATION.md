@@ -13,7 +13,7 @@ Backend feature foundation is in place: authentication, core finance domain, par
 - PostgreSQL-backed tests and CI pipeline.
 - Authentication foundation: `User`, `ApiToken`, `RefreshSession`, auth service, auth routes, and tests.
 - Core finance domain: accounts, categories, transactions, repositories, schemas, and migrations.
-- Transaction ingestion from free-form text with authenticated parse-and-create flow.
+- Transaction ingestion from free-form text with authenticated parse-and-create flow, stronger parser heuristics for multiple numbers/type inference, and API persistence coverage.
 - Planned payments Stage 3: template-first model/CRUD semantics, projection-based lifecycle cleanup, and audit-only linkage from actual transactions.
 - Projected transactions Stage 1: model with status lifecycle, forecast layer between planned payments and transactions, and API endpoints for projection management.
 - Projection scheduler Stage 1: scheduled generation of pending projected transactions from planned-payment templates and scheduler health endpoint.
@@ -28,6 +28,6 @@ Backend feature foundation is in place: authentication, core finance domain, par
 
 - Reporting refinement after product feedback on response shapes and aggregation semantics.
 - Transaction editing refinement only if product later needs broader mutable fields such as `type`.
-- Parse-and-create refinement after product feedback on ingestion heuristics and category/account defaults.
 - Additional API and integration coverage only where the roadmap explicitly calls for it.
+- Product refinement based on future feedback, especially around optional default-account selection.
 - Keep process guidance compact and prefer scripts plus docs over long ritual prompts.

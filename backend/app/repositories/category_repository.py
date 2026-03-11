@@ -3,7 +3,7 @@
 from typing import cast
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.category import Category
@@ -63,6 +63,19 @@ class CategoryRepository:
         )
         result = await self.session.scalars(stmt)
         return list(result.all())
+
+    async def get_by_user_and_name(
+        self,
+        user_id: UUID,
+        name: str,
+    ) -> Category | None:
+        """Get a user category by case-insensitive exact name."""
+        stmt = select(Category).where(
+            Category.user_id == user_id,
+            func.lower(Category.name) == name.lower(),
+        )
+        result = await self.session.scalar(stmt)
+        return result
 
     async def get_children(self, parent_id: UUID) -> list[Category]:
         """Get child categories for a parent.

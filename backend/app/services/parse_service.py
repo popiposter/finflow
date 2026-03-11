@@ -13,6 +13,7 @@ introduced later without rewriting the endpoint layer.
 import re
 from decimal import Decimal
 
+from app.models.types import TransactionType
 from app.schemas.parse_create import ParsedResult
 
 AMOUNT_PATTERN = re.compile(r"(\d+(?:[.,]\d{2})?)\s*(руб(?:лей)?|₽)?", re.IGNORECASE)
@@ -39,6 +40,8 @@ CATEGORY_KEYWORDS: tuple[tuple[str, str], ...] = (
     ("премия", "Доход"),
     ("возврат", "Возврат"),
 )
+INCOME_KEYWORDS = {"зарплата", "премия", "доход", "аванс"}
+REFUND_KEYWORDS = {"возврат", "кэшбэк", "кешбэк", "refund"}
 
 
 def extract_amount(text: str) -> Decimal | None:
@@ -55,14 +58,30 @@ def extract_amount(text: str) -> Decimal | None:
     Returns:
         Decimal amount if found, None otherwise.
     """
-    match = AMOUNT_PATTERN.search(text)
-    if match:
-        amount_str = match.group(1).replace(",", ".")
-        try:
-            return Decimal(amount_str)
-        except Exception:
-            pass
-    return None
+    matches = list(AMOUNT_PATTERN.finditer(text))
+    if not matches:
+        return None
+
+    currency_matches = [match for match in matches if match.group(2)]
+    selected_match = currency_matches[-1] if currency_matches else matches[-1]
+
+    amount_str = selected_match.group(1).replace(",", ".")
+    try:
+        return Decimal(amount_str)
+    except Exception:
+        return None
+
+
+def infer_transaction_type(text: str, category_name: str | None = None) -> TransactionType:
+    """Infer transaction type from text and detected category."""
+    text_lower = text.lower()
+
+    if category_name == "Доход" or any(keyword in text_lower for keyword in INCOME_KEYWORDS):
+        return TransactionType.INCOME
+    if category_name == "Возврат" or any(keyword in text_lower for keyword in REFUND_KEYWORDS):
+        return TransactionType.REFUND
+
+    return TransactionType.EXPENSE
 
 
 def extract_category(text: str) -> str | None:
@@ -122,6 +141,7 @@ def parse_text(text: str) -> ParsedResult:
         amount=amount,
         description=description if description else text,
         category_name=category_name,
+        transaction_type=infer_transaction_type(text, category_name),
         original_text=text,
     )
 
@@ -132,4 +152,5 @@ __all__ = [
     "extract_amount",
     "extract_category",
     "extract_description",
+    "infer_transaction_type",
 ]

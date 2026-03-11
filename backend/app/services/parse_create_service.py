@@ -5,7 +5,9 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.types import TransactionType
+from app.models.types import CategoryType, TransactionType
+from app.repositories.account_repository import AccountRepository
+from app.repositories.category_repository import CategoryRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.parse_create import ParseAndCreateResponse, ParsedResult
 from app.services.parse_service import parse_text
@@ -21,6 +23,8 @@ class TransactionParseCreateService:
             session: The async SQLAlchemy session.
         """
         self.session = session
+        self.account_repo = AccountRepository(session)
+        self.category_repo = CategoryRepository(session)
         self.transaction_repo = TransactionRepository(session)
 
     async def parse_and_create(
@@ -49,16 +53,44 @@ class TransactionParseCreateService:
         if parsed.amount is None:
             raise ValueError("Could not extract amount from text")
 
+        account = await self.account_repo.get_by_id(account_id)
+        if account is None or account.user_id != user_id:
+            raise ValueError("Account not found")
+
+        resolved_category_id = category_id
+        if resolved_category_id is not None:
+            category = await self.category_repo.get_by_id(resolved_category_id)
+            if category is None or category.user_id != user_id:
+                raise ValueError("Category not found")
+            if (
+                parsed.transaction_type == TransactionType.EXPENSE
+                and category.type == CategoryType.INCOME
+            ):
+                parsed.transaction_type = TransactionType.INCOME
+        elif parsed.category_name is not None:
+            category = await self.category_repo.get_by_user_and_name(
+                user_id=user_id,
+                name=parsed.category_name,
+            )
+            if category is not None:
+                resolved_category_id = category.id
+                if parsed.transaction_type == TransactionType.EXPENSE:
+                    parsed.transaction_type = (
+                        TransactionType.INCOME
+                        if category.type == CategoryType.INCOME
+                        else TransactionType.EXPENSE
+                    )
+
         now = datetime.now(timezone.utc)
         transaction = await self.transaction_repo.create(
             user_id=user_id,
             account_id=account_id,
             amount=parsed.amount,
-            type_=TransactionType.EXPENSE,
+            type_=parsed.transaction_type,
             date_accrual=now,
             date_cash=now,
-            category_id=category_id,
-            description=parsed.original_text,
+            category_id=resolved_category_id,
+            description=parsed.description or parsed.original_text,
             is_reconciled=False,
         )
 
