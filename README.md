@@ -19,7 +19,7 @@ FinFlow is a finance backend under active product development.
 - Projected transactions Stage 1 (forecast layer, lifecycle, confirmation/skip flow).
 - Projection scheduler Stage 1 (daily projection generation and scheduler health endpoint).
 - Reporting Stage 1 plus unified cashflow ledger and forecast endpoints.
-- Finance CRUD Stage 3 for accounts, categories, and transactions.
+- Finance CRUD Stage 4 for accounts, categories, and transactions, including partial editing for actual transactions.
 
 ## Local developer workflow
 

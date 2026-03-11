@@ -6,17 +6,19 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies.auth import get_current_user
+from app.exceptions import TransactionNotFoundError
 from app.repositories.account_repository import AccountRepository
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.auth import UserOut
-from app.schemas.finance import TransactionCreate, TransactionOut
+from app.schemas.finance import TransactionCreate, TransactionOut, TransactionPatch
 from app.schemas.parse_create import (
     ParseAndCreateResponse,
     ParseErrorResponse,
     ParseRequest,
 )
 from app.services.parse_create_service import TransactionParseCreateService
+from app.services.transaction_service import TransactionService
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -56,6 +58,21 @@ async def get_transaction_repo(
     async with async_session_factory() as session:
         try:
             yield TransactionRepository(session)
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
+async def get_transaction_service(
+    user: UserOut = Depends(get_current_user),
+) -> AsyncGenerator[TransactionService, None]:
+    """Get transaction service with database session."""
+    from app.db.session import async_session_factory
+
+    async with async_session_factory() as session:
+        try:
+            yield TransactionService(session)
             await session.commit()
         except Exception:
             await session.rollback()
@@ -367,6 +384,48 @@ async def update_transaction(
 
     await repo.update(transaction)
     return TransactionOut.model_validate(transaction)
+
+
+@router.patch(
+    "/{transaction_id}",
+    response_model=TransactionOut,
+)
+async def patch_transaction(
+    transaction_id: str,
+    transaction_data: TransactionPatch,
+    current_user: UserOut = Depends(get_current_user),
+    service: TransactionService = Depends(get_transaction_service),
+) -> TransactionOut:
+    """Partially update an existing transaction."""
+    transaction_id_uuid = UUID(transaction_id)
+    update_fields = transaction_data.model_dump(exclude_unset=True)
+
+    try:
+        updated = await service.update_transaction(
+            transaction_id=transaction_id_uuid,
+            user_id=current_user.id,
+            amount=update_fields.get("amount"),
+            category_id=update_fields.get("category_id"),
+            description=update_fields.get("description"),
+            date_accrual=update_fields.get("date_accrual"),
+            date_cash=update_fields.get("date_cash"),
+            is_reconciled=update_fields.get("is_reconciled"),
+            clear_category=(
+                "category_id" in transaction_data.model_fields_set
+                and update_fields.get("category_id") is None
+            ),
+            clear_description=(
+                "description" in transaction_data.model_fields_set
+                and update_fields.get("description") is None
+            ),
+        )
+    except TransactionNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        ) from exc
+
+    return TransactionOut.model_validate(updated)
 
 
 @router.delete(

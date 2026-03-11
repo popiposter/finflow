@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Backend feature foundation is in place: authentication, core finance domain, parse-and-create ingestion, planned payments, projected transactions, reporting Stage 1, and finance CRUD Stage 3 for accounts, categories, and transactions.
+Backend feature foundation is in place: authentication, core finance domain, parse-and-create ingestion, planned payments, projected transactions, reporting Stage 1, and finance CRUD Stage 4 for accounts, categories, and transactions.
 
 ## Completed
 
@@ -19,7 +19,7 @@ Backend feature foundation is in place: authentication, core finance domain, par
 - Projection scheduler Stage 1: scheduled generation of pending projected transactions from planned payments, legacy execute flow wired to projections, and scheduler health endpoint.
 - Reporting Stage 1: `GET /api/v1/reports/pnl`, `GET /api/v1/reports/cashflow`, aggregation services, grouping support, and smoke coverage.
 - Cashflow ledger Stage 1: `GET /api/v1/cashflow/report` and `GET /api/v1/cashflow/forecast` over actual + projected rows with running/opening/closing balance calculation at read time.
-- Finance CRUD Stage 3: CRUD endpoints for accounts, categories, and transactions, plus repository and API coverage.
+- Finance CRUD Stage 4: CRUD endpoints for accounts, categories, and transactions, plus PATCH editing for actual transactions and coverage that verifies ledger reads reflect corrections on the next request.
 - Category hierarchy validation and accrual-vs-cash transaction behavior coverage.
 - Compact repo docs and local developer scripts for repeatable validation.
 - CI infrastructure improvements: Python 3.12, uv-managed dependencies, aligned local and CI toolchains.
@@ -27,7 +27,7 @@ Backend feature foundation is in place: authentication, core finance domain, par
 ## Next likely steps
 
 - Reporting refinement after product feedback on response shapes and aggregation semantics.
-- Actual transaction editing so ledger/report reads reflect post-confirm corrections cleanly.
 - Planned payments template cleanup now that recurring execution generates projections first.
+- Transaction editing refinement only if product later needs broader mutable fields such as `type`.
 - Additional API and integration coverage only where the roadmap explicitly calls for it.
 - Keep process guidance compact and prefer scripts plus docs over long ritual prompts.

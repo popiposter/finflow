@@ -8,6 +8,7 @@ from app.services.planned_payments_executor import PlannedPaymentsExecutor
 from app.services.projected_transaction_service import ProjectedTransactionService
 from app.services.projection_scheduler_service import ProjectionSchedulerService
 from app.services.report_service import ReportService
+from app.services.transaction_service import TransactionService
 
 __all__ = [
     "AuthService",
@@ -18,4 +19,5 @@ __all__ = [
     "ProjectionSchedulerService",
     "ProjectedTransactionService",
     "ReportService",
+    "TransactionService",
 ]
