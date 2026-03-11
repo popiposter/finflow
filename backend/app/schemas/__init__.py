@@ -38,6 +38,7 @@ from app.schemas.finance import (
     ReportGroupBy,
     ReportTypeTotal,
     TransactionCreate,
+    TransactionPatch,
     TransactionOut,
 )
 from app.schemas.parse_create import (
@@ -78,6 +79,7 @@ __all__ = [
     "ProjectedTransactionConfirmRequest",
     "ProjectedTransactionConfirmResponse",
     "TransactionCreate",
+    "TransactionPatch",
     "TransactionOut",
     # Reports
     "ReportDateRange",

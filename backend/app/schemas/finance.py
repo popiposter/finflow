@@ -8,7 +8,7 @@ from decimal import Decimal
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.types import (
     AccountType,
@@ -90,6 +90,17 @@ class TransactionBase(BaseModel):
 
 class TransactionCreate(TransactionBase):
     """Schema for transaction creation."""
+
+
+class TransactionPatch(BaseModel):
+    """Schema for partial transaction updates."""
+
+    amount: Decimal | None = Field(default=None, gt=0)
+    category_id: UUID | None = None
+    description: str | None = None
+    date_accrual: datetime | None = None
+    date_cash: datetime | None = None
+    is_reconciled: bool | None = None
 
 
 class TransactionOut(TransactionBase):

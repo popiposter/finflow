@@ -1,6 +1,14 @@
 """Domain exceptions for FinFlow application."""
 
 
+class TransactionNotFoundError(Exception):
+    """Raised when a transaction is not found."""
+
+    def __init__(self, transaction_id: str):
+        self.transaction_id = transaction_id
+        super().__init__(f"Transaction not found: {transaction_id}")
+
+
 class ProjectionNotFoundError(Exception):
     """Raised when a projected transaction is not found."""
 
@@ -36,6 +44,7 @@ class ProjectionVersionMismatchError(Exception):
 
 
 __all__ = [
+    "TransactionNotFoundError",
     "ProjectionNotFoundError",
     "InvalidProjectionStatusError",
     "ProjectionVersionMismatchError",

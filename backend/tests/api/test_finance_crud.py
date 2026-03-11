@@ -41,6 +41,33 @@ async def _login_user(async_client: AsyncClient, email: str, password: str) -> s
     return login_response.json()["access_token"]
 
 
+async def _create_account(async_client: AsyncClient, access_token: str, name: str) -> str:
+    """Create an account and return its ID."""
+    response = await async_client.post(
+        "/api/v1/accounts",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"name": name, "type": "checking"},
+    )
+    assert response.status_code == 201
+    return response.json()["id"]
+
+
+async def _create_category(
+    async_client: AsyncClient,
+    access_token: str,
+    name: str,
+    type_: str = "expense",
+) -> str:
+    """Create a category and return its ID."""
+    response = await async_client.post(
+        "/api/v1/categories",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"name": name, "type": type_},
+    )
+    assert response.status_code == 201
+    return response.json()["id"]
+
+
 @pytest.mark.api
 class TestAccountsEndpoints:
     """Tests for accounts CRUD endpoints."""
@@ -781,3 +808,142 @@ class TestTransactionsEndpoints:
             headers={"Authorization": f"Bearer {access_token}"},
         )
         assert get_response.status_code == 404
+
+    async def test_patch_transaction_partial_update(
+        self, async_client: AsyncClient
+    ) -> None:
+        """PATCH should update only provided transaction fields."""
+        access_token = await _login_user(
+            async_client, "patchtransuser@example.com", "SecurePass123!"
+        )
+        account_id = await _create_account(async_client, access_token, "Checking")
+        category_id = await _create_category(async_client, access_token, "Salary", "income")
+
+        create_response = await async_client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "account_id": account_id,
+                "amount": "100.00",
+                "type": "income",
+                "date_accrual": "2024-01-15T10:00:00Z",
+                "date_cash": "2024-01-15T10:00:00Z",
+                "description": "Original",
+                "is_reconciled": False,
+            },
+        )
+        transaction_id = create_response.json()["id"]
+
+        response = await async_client.patch(
+            f"/api/v1/transactions/{transaction_id}",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "amount": "150.00",
+                "description": "Corrected income",
+                "category_id": category_id,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["amount"] == "150.00"
+        assert data["description"] == "Corrected income"
+        assert data["category_id"] == category_id
+        assert data["date_cash"] == "2024-01-15T10:00:00Z"
+        assert data["type"] == "income"
+
+    async def test_patch_transaction_can_clear_category(
+        self, async_client: AsyncClient
+    ) -> None:
+        """PATCH should allow clearing category_id explicitly with null."""
+        access_token = await _login_user(
+            async_client, "patchclearcat@example.com", "SecurePass123!"
+        )
+        account_id = await _create_account(async_client, access_token, "Checking")
+        category_id = await _create_category(async_client, access_token, "Food")
+
+        create_response = await async_client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "account_id": account_id,
+                "category_id": category_id,
+                "amount": "80.00",
+                "type": "payment",
+                "date_accrual": "2024-01-15T10:00:00Z",
+                "date_cash": "2024-01-15T10:00:00Z",
+            },
+        )
+        transaction_id = create_response.json()["id"]
+
+        response = await async_client.patch(
+            f"/api/v1/transactions/{transaction_id}",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={"category_id": None},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["category_id"] is None
+
+    async def test_patch_transaction_other_user_gets_404(
+        self, async_client: AsyncClient
+    ) -> None:
+        """PATCH should not expose another user's transaction."""
+        owner_token = await _login_user(
+            async_client, "patchowner@example.com", "SecurePass123!"
+        )
+        other_token = await _login_user(
+            async_client, "patchother@example.com", "SecurePass123!"
+        )
+        owner_account_id = await _create_account(async_client, owner_token, "Checking")
+
+        create_response = await async_client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {owner_token}"},
+            json={
+                "account_id": owner_account_id,
+                "amount": "55.00",
+                "type": "payment",
+                "date_accrual": "2024-01-15T10:00:00Z",
+                "date_cash": "2024-01-15T10:00:00Z",
+            },
+        )
+        transaction_id = create_response.json()["id"]
+
+        response = await async_client.patch(
+            f"/api/v1/transactions/{transaction_id}",
+            headers={"Authorization": f"Bearer {other_token}"},
+            json={"amount": "60.00"},
+        )
+
+        assert response.status_code == 404
+
+    async def test_patch_transaction_invalid_amount(
+        self, async_client: AsyncClient
+    ) -> None:
+        """PATCH should reject non-positive amounts."""
+        access_token = await _login_user(
+            async_client, "patchinvalidamount@example.com", "SecurePass123!"
+        )
+        account_id = await _create_account(async_client, access_token, "Checking")
+
+        create_response = await async_client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "account_id": account_id,
+                "amount": "10.00",
+                "type": "payment",
+                "date_accrual": "2024-01-15T10:00:00Z",
+                "date_cash": "2024-01-15T10:00:00Z",
+            },
+        )
+        transaction_id = create_response.json()["id"]
+
+        response = await async_client.patch(
+            f"/api/v1/transactions/{transaction_id}",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={"amount": "0"},
+        )
+
+        assert response.status_code == 422

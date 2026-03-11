@@ -166,3 +166,66 @@ class TestCashflowAPI:
         data = response.json()
         assert data["projected_expense"] == "90.00"
         assert data["pending_count"] == 1
+
+    async def test_cashflow_report_reflects_patched_transaction_amount_and_date(
+        self,
+        async_client: AsyncClient,
+        user_with_account_category: dict,
+    ) -> None:
+        """Ledger should reflect patched transaction values on the next read."""
+        account_id = str(user_with_account_category["account_id"])
+        category_id = str(user_with_account_category["category_id"])
+        access_token = user_with_account_category["access_token"]
+
+        salary_response = await async_client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "account_id": account_id,
+                "category_id": category_id,
+                "amount": "1000.00",
+                "type": "income",
+                "date_accrual": "2024-01-10T09:00:00Z",
+                "date_cash": "2024-01-10T09:00:00Z",
+                "description": "Salary",
+            },
+        )
+        expense_response = await async_client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "account_id": account_id,
+                "category_id": category_id,
+                "amount": "200.00",
+                "type": "expense",
+                "date_accrual": "2024-01-11T09:00:00Z",
+                "date_cash": "2024-01-11T09:00:00Z",
+                "description": "Rent",
+            },
+        )
+        transaction_id = expense_response.json()["id"]
+
+        patch_response = await async_client.patch(
+            f"/api/v1/transactions/{transaction_id}",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "amount": "150.00",
+                "date_cash": "2024-01-09T09:00:00Z",
+            },
+        )
+        assert patch_response.status_code == 200
+
+        response = await async_client.get(
+            "/api/v1/cashflow/report",
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={"from": "2024-01-09", "to": "2024-01-11"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert [row["transaction_id"] for row in data["rows"]] == [
+            transaction_id,
+            salary_response.json()["id"],
+        ]
+        assert [row["amount"] for row in data["rows"]] == ["-150.00", "1000.00"]
+        assert [row["balance_after"] for row in data["rows"]] == ["-150.00", "850.00"]
