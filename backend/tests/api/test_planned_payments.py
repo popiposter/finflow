@@ -1,21 +1,26 @@
 """API tests for planned payments endpoints.
 
-These tests verify CRUD operations, transaction generation, and execution flow:
+These tests verify CRUD operations, projection generation, and execution flow:
 - POST /api/v1/planned-payments - Create
 - GET /api/v1/planned-payments - List
 - GET /api/v1/planned-payments/{id} - Get
 - PUT /api/v1/planned-payments/{id} - Update
 - DELETE /api/v1/planned-payments/{id} - Delete (soft)
-- POST /api/v1/planned-payments/generate - Generate transactions
-- POST /api/v1/planned-payments/execute - Execution flow (idempotent, scheduler-facing)
+- POST /api/v1/planned-payments/generate - Generate projections
+- POST /api/v1/planned-payments/execute - Legacy execution flow for projection generation
 """
 
 from decimal import Decimal
+from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
 
 from app.db import async_session_factory
+from app.repositories.projected_transaction_repository import (
+    ProjectedTransactionRepository,
+)
+from app.repositories.transaction_repository import TransactionRepository
 
 pytestmark = pytest.mark.api
 
@@ -313,17 +318,17 @@ class TestExecuteDuePayments:
 
     These tests verify the scheduler-facing execution flow:
     - Create a payment and execute for due date
-    - Verify transactions are created
+    - Verify projections are created instead of transactions
     - Verify idempotent behavior on re-execution
     - Verify no-op when nothing is due
     """
 
-    async def test_execute_creates_transaction(
+    async def test_execute_creates_projection(
         self,
         async_client: AsyncClient,
         user_with_account_category: dict,
     ) -> None:
-        """Test that execute creates a transaction for a due payment."""
+        """Test that execute creates a projection for a due payment."""
         user_id = user_with_account_category["user_id"]
         account_id = user_with_account_category["account_id"]
         category_id = user_with_account_category["category_id"]
@@ -372,15 +377,28 @@ class TestExecuteDuePayments:
         assert len(data["details"]) == 1
         detail = data["details"][0]
         assert detail["planned_payment_id"] == payment_id
-        assert len(detail["generated_transactions"]) == 1
+        assert len(detail["generated_projections"]) == 1
         assert detail["next_due_at"] == "2024-02-15"  # Next month
+
+        async with async_session_factory() as session:
+            projection_repo = ProjectedTransactionRepository(session)
+            transaction_repo = TransactionRepository(session)
+
+            generated_projection = await projection_repo.get_by_id(
+                UUID(detail["generated_projections"][0])
+            )
+            assert generated_projection is not None
+            assert generated_projection.transaction_id is None
+
+            transactions = await transaction_repo.get_by_user(UUID(user_id))
+            assert len(transactions) == 0
 
     async def test_execute_idempotent_on_repeat(
         self,
         async_client: AsyncClient,
         user_with_account_category: dict,
     ) -> None:
-        """Test that re-executing doesn't duplicate transactions."""
+        """Test that re-executing doesn't duplicate projections."""
         user_id = user_with_account_category["user_id"]
         account_id = user_with_account_category["account_id"]
         category_id = user_with_account_category["category_id"]
@@ -413,7 +431,7 @@ class TestExecuteDuePayments:
         )
         assert exec1.status_code == 200
         first_result = exec1.json()
-        first_transaction_id = first_result["details"][0]["generated_transactions"][0]
+        first_projection_id = first_result["details"][0]["generated_projections"][0]
 
         # Second execution (same date) - should be idempotent
         exec2 = await async_client.post(
@@ -432,6 +450,14 @@ class TestExecuteDuePayments:
         # - If payment is still due, details will show skipped_occurrences
         # Both behaviors are valid for idempotency
         assert second_result["total_processed"] in (0, 1)
+
+        async with async_session_factory() as session:
+            projection_repo = ProjectedTransactionRepository(session)
+            projections = await projection_repo.get_by_planned_payment(
+                UUID(response.json()["id"])
+            )
+            assert len(projections) == 1
+            assert str(projections[0].id) == first_projection_id
 
     async def test_execute_noop_when_not_due(
         self,

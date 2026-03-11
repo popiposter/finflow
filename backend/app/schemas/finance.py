@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Finance domain schemas."""
+
+from __future__ import annotations
 
 from datetime import date as date_type, datetime
 from decimal import Decimal
@@ -142,22 +142,22 @@ class PlannedPaymentOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class RecurrenceGenerationResult(BaseModel):
-    """Result of generating recurring transactions for a single planned payment."""
+class ProjectionGenerationResult(BaseModel):
+    """Result of generating projected transactions for a planned payment."""
 
     planned_payment_id: UUID
-    generated_transactions: list[UUID]
+    generated_projections: list[UUID]
     next_due_at: date_type
     skipped_occurrences: int = 0
 
 
-class PlannedPaymentExecutionSummary(BaseModel):
-    """Summary of a planned payment execution run."""
+class ProjectionExecutionSummary(BaseModel):
+    """Summary of a projection generation run."""
 
     total_processed: int
     total_generated: int
     skipped_occurrences: int
-    details: list[RecurrenceGenerationResult]
+    details: list[ProjectionGenerationResult]
 
 
 class PlannedPaymentExecutionRequest(BaseModel):

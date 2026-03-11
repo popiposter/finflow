@@ -11,12 +11,12 @@ from app.schemas.auth import UserOut
 from app.schemas.finance import (
     PlannedPaymentCreate,
     PlannedPaymentExecutionRequest,
-    PlannedPaymentExecutionSummary,
     PlannedPaymentOut,
-    RecurrenceGenerationResult,
+    ProjectionExecutionSummary,
+    ProjectionGenerationResult,
 )
-from app.services.planned_payment_service import PlannedPaymentGenerationService
 from app.services.planned_payments_executor import PlannedPaymentsExecutor
+from app.services.projection_scheduler_service import ProjectionSchedulerService
 
 router = APIRouter(prefix="/planned-payments", tags=["planned-payments"])
 
@@ -43,17 +43,17 @@ async def get_repo(
             raise
 
 
-async def get_generation_service() -> AsyncGenerator[PlannedPaymentGenerationService, None]:
-    """Get generation service with database session.
+async def get_generation_service() -> AsyncGenerator[ProjectionSchedulerService, None]:
+    """Get projection generation service with database session.
 
     Yields:
-        PlannedPaymentGenerationService instance.
+        ProjectionSchedulerService instance.
     """
     from app.db.session import async_session_factory
 
     async with async_session_factory() as session:
         try:
-            yield PlannedPaymentGenerationService(session)
+            yield ProjectionSchedulerService(session)
             await session.commit()
         except Exception:
             await session.rollback()
@@ -258,14 +258,14 @@ async def delete_planned_payment(
 
 @router.post(
     "/generate",
-    response_model=list[RecurrenceGenerationResult],
+    response_model=list[ProjectionGenerationResult],
 )
 async def generate_transactions(
     current_user: UserOut = Depends(get_current_user),
-    service: PlannedPaymentGenerationService = Depends(get_generation_service),
+    service: ProjectionSchedulerService = Depends(get_generation_service),
     as_of_date: date | None = None,
-) -> list[RecurrenceGenerationResult]:
-    """Generate due transactions for the current user's planned payments.
+) -> list[ProjectionGenerationResult]:
+    """Generate due projections for the current user's planned payments.
 
     Args:
         current_user: Authenticated user.
@@ -273,9 +273,9 @@ async def generate_transactions(
         as_of_date: Optional date to generate up to. Defaults to today.
 
     Returns:
-        Generation results for each processed planned payment.
+        Projection generation results for each processed planned payment.
     """
-    results = await service.generate_due_transactions(
+    results = await service.generate_due_projections(
         user_id=current_user.id,
         as_of_date=as_of_date,
     )
@@ -284,18 +284,17 @@ async def generate_transactions(
 
 @router.post(
     "/execute",
-    response_model=PlannedPaymentExecutionSummary,
+    response_model=ProjectionExecutionSummary,
 )
 async def execute_due_payments(
     current_user: UserOut = Depends(get_current_user),
     executor: PlannedPaymentsExecutor = Depends(get_executor),
     request: PlannedPaymentExecutionRequest | None = Body(default=None),
-) -> PlannedPaymentExecutionSummary:
+) -> ProjectionExecutionSummary:
     """Execute generation for all due planned payments.
 
-    This is the scheduler-facing entry point for generating recurring
-    transactions. It provides a clear operational summary of what was
-    processed and generated.
+    This legacy route now delegates to projection generation instead of
+    creating actual transactions directly.
 
     Args:
         current_user: Authenticated user (used for tenant scoping).

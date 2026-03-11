@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.planned_payment import PlannedPayment
@@ -97,6 +97,10 @@ class PlannedPaymentRepository:
                 PlannedPayment.user_id == user_id,
                 PlannedPayment.is_active == True,  # noqa: E712
                 PlannedPayment.next_due_at <= as_of_date,
+                or_(
+                    PlannedPayment.end_date.is_(None),
+                    PlannedPayment.end_date >= PlannedPayment.next_due_at,
+                ),
             )
             .order_by(
                 PlannedPayment.next_due_at,
@@ -129,6 +133,10 @@ class PlannedPaymentRepository:
             .where(
                 PlannedPayment.is_active == True,  # noqa: E712
                 PlannedPayment.next_due_at <= as_of_date,
+                or_(
+                    PlannedPayment.end_date.is_(None),
+                    PlannedPayment.end_date >= PlannedPayment.next_due_at,
+                ),
             )
             .order_by(
                 PlannedPayment.next_due_at,
