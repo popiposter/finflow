@@ -8,7 +8,12 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from pydantic import UUID4
 
 from app.api.dependencies.auth import get_current_user
-from app.exceptions import InvalidProjectionStatusError, ProjectionNotFoundError
+from app.exceptions import (
+    AccountNotFoundError,
+    CategoryNotFoundError,
+    InvalidProjectionStatusError,
+    ProjectionNotFoundError,
+)
 from app.models.projected_transaction import ProjectedTransaction
 from app.models.types import ProjectedTransactionStatus
 from app.repositories.projected_transaction_repository import ProjectedTransactionRepository
@@ -183,6 +188,11 @@ async def update_projected_transaction(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Projected transaction not found",
         ) from e
+    except CategoryNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found",
+        ) from e
     except InvalidProjectionStatusError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -236,6 +246,16 @@ async def confirm_projected_transaction(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Projected transaction not found",
+        ) from e
+    except CategoryNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found",
+        ) from e
+    except AccountNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found",
         ) from e
     except InvalidProjectionStatusError as e:
         raise HTTPException(

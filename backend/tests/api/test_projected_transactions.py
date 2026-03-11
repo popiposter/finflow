@@ -300,6 +300,79 @@ class TestUpdateProjectedTransaction:
 
         assert update_response.status_code == 409
 
+    async def test_update_projection_rejects_foreign_category(
+        self,
+        async_client: AsyncClient,
+        user_with_account_category: dict,
+    ) -> None:
+        """Test updating projection with another user's category is rejected."""
+        account_id = user_with_account_category["account_id"]
+        access_token = user_with_account_category["access_token"]
+
+        create_payment = await async_client.post(
+            "/api/v1/planned-payments",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "account_id": str(account_id),
+                "amount": "1000.00",
+                "description": "Monthly rent",
+                "recurrence": "monthly",
+                "start_date": "2024-01-01",
+                "next_due_at": "2024-01-15",
+                "is_active": True,
+            },
+        )
+        assert create_payment.status_code == 201
+        payment_id = create_payment.json()["id"]
+
+        from app.models.types import CategoryType, ProjectedTransactionType
+        from app.repositories.category_repository import CategoryRepository
+        from app.repositories.projected_transaction_repository import (
+            ProjectedTransactionRepository,
+        )
+
+        async with async_session_factory() as session:
+            projected_repo = ProjectedTransactionRepository(session)
+            projected = await projected_repo.create(
+                planned_payment_id=payment_id,
+                origin_date=date(2024, 1, 15),
+                origin_amount=Decimal("1000"),
+                origin_description="Monthly rent",
+                origin_category_id=None,
+                type_=ProjectedTransactionType.EXPENSE,
+                projected_date=date(2024, 1, 15),
+                projected_amount=Decimal("1000"),
+                projected_description="Monthly rent",
+                projected_category_id=None,
+            )
+
+            # Foreign user + foreign category
+            reg_other = await async_client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": "projection-foreign-category@example.com",
+                    "password": "SecurePass123!",
+                },
+            )
+            other_user_id = reg_other.json()["id"]
+
+            category_repo = CategoryRepository(session)
+            foreign_category = await category_repo.create(
+                user_id=other_user_id,
+                name="Foreign Category",
+                type_=CategoryType.EXPENSE,
+            )
+            await session.commit()
+
+        update_response = await async_client.patch(
+            f"/api/v1/projected-transactions/{projected.id}",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={"projected_category_id": str(foreign_category.id)},
+        )
+
+        assert update_response.status_code == 404
+        assert update_response.json()["detail"] == "Category not found"
+
 
 class TestConfirmProjectedTransaction:
     """Tests for POST /api/v1/projected-transactions/{id}/confirm."""
@@ -530,6 +603,78 @@ class TestConfirmProjectedTransaction:
         )
 
         assert confirm_response.status_code == 409
+
+    async def test_confirm_projection_rejects_foreign_category_override(
+        self,
+        async_client: AsyncClient,
+        user_with_account_category: dict,
+    ) -> None:
+        """Test confirming projection with foreign category override is rejected."""
+        account_id = user_with_account_category["account_id"]
+        access_token = user_with_account_category["access_token"]
+
+        create_payment = await async_client.post(
+            "/api/v1/planned-payments",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "account_id": str(account_id),
+                "amount": "1000.00",
+                "description": "Monthly rent",
+                "recurrence": "monthly",
+                "start_date": "2024-01-01",
+                "next_due_at": "2024-01-15",
+                "is_active": True,
+            },
+        )
+        assert create_payment.status_code == 201
+        payment_id = create_payment.json()["id"]
+
+        from app.models.types import CategoryType, ProjectedTransactionType
+        from app.repositories.category_repository import CategoryRepository
+        from app.repositories.projected_transaction_repository import (
+            ProjectedTransactionRepository,
+        )
+
+        async with async_session_factory() as session:
+            projected_repo = ProjectedTransactionRepository(session)
+            projected = await projected_repo.create(
+                planned_payment_id=payment_id,
+                origin_date=date(2024, 1, 15),
+                origin_amount=Decimal("1000"),
+                origin_description="Monthly rent",
+                origin_category_id=None,
+                type_=ProjectedTransactionType.EXPENSE,
+                projected_date=date(2024, 1, 15),
+                projected_amount=Decimal("1000"),
+                projected_description="Monthly rent",
+                projected_category_id=None,
+            )
+
+            reg_other = await async_client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": "projection-confirm-foreign@example.com",
+                    "password": "SecurePass123!",
+                },
+            )
+            other_user_id = reg_other.json()["id"]
+
+            category_repo = CategoryRepository(session)
+            foreign_category = await category_repo.create(
+                user_id=other_user_id,
+                name="Foreign Category Confirm",
+                type_=CategoryType.EXPENSE,
+            )
+            await session.commit()
+
+        confirm_response = await async_client.post(
+            f"/api/v1/projected-transactions/{projected.id}/confirm",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={"category_id": str(foreign_category.id)},
+        )
+
+        assert confirm_response.status_code == 404
+        assert confirm_response.json()["detail"] == "Category not found"
 
 
 class TestSkipProjectedTransaction:

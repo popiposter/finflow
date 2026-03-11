@@ -6,13 +6,20 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.exceptions import InvalidProjectionStatusError, ProjectionNotFoundError
+from app.exceptions import (
+    AccountNotFoundError,
+    CategoryNotFoundError,
+    InvalidProjectionStatusError,
+    ProjectionNotFoundError,
+)
 from app.models.projected_transaction import ProjectedTransaction
 from app.models.types import (
     ProjectedTransactionStatus,
     ProjectedTransactionType,
     TransactionType,
 )
+from app.repositories.account_repository import AccountRepository
+from app.repositories.category_repository import CategoryRepository
 from app.repositories.projected_transaction_repository import ProjectedTransactionRepository
 from app.repositories.transaction_repository import TransactionRepository
 
@@ -37,12 +44,21 @@ class ProjectedTransactionService:
             session: The async SQLAlchemy session.
         """
         self.session = session
+        self.account_repo = AccountRepository(session)
+        self.category_repo = CategoryRepository(session)
         self.projected_transaction_repo = ProjectedTransactionRepository(session)
         self.transaction_repo = TransactionRepository(session)
 
+    @staticmethod
+    def _normalize_user_id(user_id: UUID | str) -> UUID:
+        """Normalize user IDs from API/service callers to UUID."""
+        if isinstance(user_id, UUID):
+            return user_id
+        return UUID(user_id)
+
     async def update_projection(
         self,
-        user_id: UUID,
+        user_id: UUID | str,
         projected_transaction_id: UUID,
         projected_amount: Decimal | None = None,
         projected_date: date | None = None,
@@ -66,8 +82,10 @@ class ProjectedTransactionService:
             ProjectionNotFoundError: If projection not found or not owned by user.
             InvalidProjectionStatusError: If status != PENDING.
         """
+        normalized_user_id = self._normalize_user_id(user_id)
+
         projected_transaction = await self.projected_transaction_repo.get_by_user_and_id(
-            user_id=user_id,
+            user_id=normalized_user_id,
             projected_transaction_id=projected_transaction_id,
         )
 
@@ -89,6 +107,9 @@ class ProjectedTransactionService:
         if projected_description is not None:
             projected_transaction.projected_description = projected_description
         if projected_category_id is not None:
+            category = await self.category_repo.get_by_id(projected_category_id)
+            if category is None or category.user_id != normalized_user_id:
+                raise CategoryNotFoundError(str(projected_category_id))
             projected_transaction.projected_category_id = projected_category_id
 
         # Increment version for optimistic locking
@@ -99,7 +120,7 @@ class ProjectedTransactionService:
 
     async def confirm_projection(
         self,
-        user_id: UUID,
+        user_id: UUID | str,
         projected_transaction_id: UUID,
         amount: Decimal | None = None,
         date_: date | datetime | None = None,
@@ -126,8 +147,10 @@ class ProjectedTransactionService:
             ProjectionNotFoundError: If projection not found or not owned by user.
             InvalidProjectionStatusError: If status != PENDING.
         """
+        normalized_user_id = self._normalize_user_id(user_id)
+
         projected_transaction = await self.projected_transaction_repo.get_by_user_and_id(
-            user_id=user_id,
+            user_id=normalized_user_id,
             projected_transaction_id=projected_transaction_id,
         )
 
@@ -160,6 +183,16 @@ class ProjectedTransactionService:
             if category_id is not None
             else projected_transaction.projected_category_id
         )
+        if confirm_category_id is not None:
+            category = await self.category_repo.get_by_id(confirm_category_id)
+            if category is None or category.user_id != normalized_user_id:
+                raise CategoryNotFoundError(str(confirm_category_id))
+
+        account = await self.account_repo.get_by_id(
+            projected_transaction.planned_payment.account_id
+        )
+        if account is None or account.user_id != normalized_user_id:
+            raise AccountNotFoundError(str(projected_transaction.planned_payment.account_id))
 
         # Map ProjectedTransactionType to TransactionType
         type_map = {
@@ -170,8 +203,8 @@ class ProjectedTransactionService:
 
         # Create the actual transaction
         transaction = await self.transaction_repo.create(
-            user_id=user_id,
-            account_id=projected_transaction.planned_payment.account_id,
+            user_id=normalized_user_id,
+            account_id=account.id,
             amount=confirm_amount,
             type_=transaction_type,
             date_accrual=datetime.combine(confirm_date, time.min, tzinfo=timezone.utc),
@@ -195,7 +228,7 @@ class ProjectedTransactionService:
 
     async def skip_projection(
         self,
-        user_id: UUID,
+        user_id: UUID | str,
         projected_transaction_id: UUID,
     ) -> ProjectedTransaction:
         """Skip a projection.
@@ -211,8 +244,10 @@ class ProjectedTransactionService:
             ProjectionNotFoundError: If projection not found or not owned by user.
             InvalidProjectionStatusError: If status != PENDING.
         """
+        normalized_user_id = self._normalize_user_id(user_id)
+
         projected_transaction = await self.projected_transaction_repo.get_by_user_and_id(
-            user_id=user_id,
+            user_id=normalized_user_id,
             projected_transaction_id=projected_transaction_id,
         )
 
@@ -236,7 +271,7 @@ class ProjectedTransactionService:
 
     async def get_projection(
         self,
-        user_id: UUID,
+        user_id: UUID | str,
         projected_transaction_id: UUID,
     ) -> ProjectedTransaction | None:
         """Get a specific projected transaction.
@@ -248,14 +283,15 @@ class ProjectedTransactionService:
         Returns:
             The projected transaction if found, None otherwise.
         """
+        normalized_user_id = self._normalize_user_id(user_id)
         return await self.projected_transaction_repo.get_by_user_and_id(
-            user_id=user_id,
+            user_id=normalized_user_id,
             projected_transaction_id=projected_transaction_id,
         )
 
     async def list_projections(
         self,
-        user_id: UUID,
+        user_id: UUID | str,
         status: ProjectedTransactionStatus | None = None,
         from_date: date | None = None,
         to_date: date | None = None,
@@ -271,8 +307,9 @@ class ProjectedTransactionService:
         Returns:
             List of projected transactions matching the filters.
         """
+        normalized_user_id = self._normalize_user_id(user_id)
         return await self.projected_transaction_repo.get_filtered(
-            user_id=user_id,
+            user_id=normalized_user_id,
             status=status,
             from_date=from_date,
             to_date=to_date,
