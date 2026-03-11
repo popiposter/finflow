@@ -115,6 +115,7 @@ class TransactionRepository:
         category_id: UUID | None = None,
         counterparty_account_id: UUID | None = None,
         planned_payment_id: UUID | None = None,
+        projected_transaction_id: UUID | None = None,
         description: str | None = None,
         is_reconciled: bool = False,
     ) -> Transaction:
@@ -130,6 +131,7 @@ class TransactionRepository:
             category_id: Optional category for classification.
             counterparty_account_id: Optional opposing account (transfers).
             planned_payment_id: Optional source planned payment for recurring transactions.
+            projected_transaction_id: Optional source projected transaction for forecast layer.
             description: Human-readable description.
             is_reconciled: Whether transaction is reconciled.
 
@@ -146,6 +148,7 @@ class TransactionRepository:
             category_id=category_id,
             counterparty_account_id=counterparty_account_id,
             planned_payment_id=planned_payment_id,
+            projected_transaction_id=projected_transaction_id,
             description=description,
             is_reconciled=is_reconciled,
         )

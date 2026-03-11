@@ -12,6 +12,7 @@ from app.db.base import Base
 from app.models.types import MONEY_TYPE, Money, Recurrence
 
 if TYPE_CHECKING:
+    from app.models.projected_transaction import ProjectedTransaction
     from app.models.transaction import Transaction
 
 
@@ -101,6 +102,11 @@ class PlannedPayment(Base):
     )
     # Generated transactions for this planned payment
     transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="planned_payment",
+        cascade="all, delete-orphan",
+    )
+    # Projected transactions for this planned payment
+    projected_transactions: Mapped[list["ProjectedTransaction"]] = relationship(
         back_populates="planned_payment",
         cascade="all, delete-orphan",
     )

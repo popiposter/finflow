@@ -1,5 +1,7 @@
 """Transaction model for financial entries."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
@@ -9,11 +11,11 @@ from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.planned_payment import PlannedPayment
 from app.models.types import MONEY_TYPE, Money, TransactionType
 
 if TYPE_CHECKING:
     from app.models.planned_payment import PlannedPayment
+    from app.models.projected_transaction import ProjectedTransaction
 
 
 class Transaction(Base):
@@ -82,6 +84,21 @@ class Transaction(Base):
     # Relationship to source planned payment
     planned_payment: Mapped[PlannedPayment | None] = relationship(
         back_populates="transactions",
+    )
+    # Source projected transaction for forecast layer (optional)
+    projected_transaction_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(
+            "projected_transactions.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_transactions_projected_transaction",
+        ),
+        nullable=True,
+        index=True,
+    )
+    # Relationship to source projected transaction
+    projected_transaction: Mapped[ProjectedTransaction | None] = relationship(
+        foreign_keys=[projected_transaction_id],
     )
     # Amount as positive Decimal (direction determined by type + account type)
     amount: Mapped[Money] = mapped_column(
