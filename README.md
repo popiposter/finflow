@@ -1,6 +1,6 @@
 # FinFlow
 
-FinFlow is a finance backend under active product development.
+FinFlow is an installable finance workspace under active product development, with a FastAPI backend and a mobile-first React PWA frontend.
 
 ## Where to start
 
@@ -9,7 +9,7 @@ FinFlow is a finance backend under active product development.
 - `backend/README.md` — backend-specific developer workflow.
 - `docs/testing-architecture.md` — how tests and CI are structured.
 
-## Current backend scope
+## Current scope
 
 - Authentication foundation.
 - Finance domain models for accounts, categories, transactions, and planned payments.
@@ -19,6 +19,7 @@ FinFlow is a finance backend under active product development.
 - Projection scheduler Stage 1 (daily projection generation and scheduler health endpoint).
 - Reporting Stage 1 plus unified cashflow ledger and forecast endpoints.
 - Finance CRUD Stage 4 for accounts, categories, and transactions, including partial editing for actual transactions.
+- Frontend v1: React + TypeScript + Vite PWA with cookie-auth session restore, offline persisted reads via TanStack Query + IndexedDB, and mobile-first screens for auth, dashboard, transactions, plans, projections, reports, and settings.
 
 ## Local developer workflow
 
@@ -38,3 +39,30 @@ ruff format .
 ```
 
 Ruff is now advisory in the local workflow rather than enforced by repo scripts.
+
+## Frontend quick start
+
+The PWA lives in `frontend/` and expects the backend API on the same origin. In local development, Vite proxies `/api` to `http://127.0.0.1:8000`.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend environment defaults:
+
+```bash
+VITE_API_BASE_URL=/api/v1
+```
+
+Frontend validation:
+
+```bash
+cd frontend
+npm run typecheck
+npm run test:run
+npm run build
+```
+
+The PWA ships an installable app shell, offline read-through cache for successful queries, and blocks offline mutations in the UI rather than queueing them.

@@ -7,10 +7,11 @@ on:
       - main
 
 jobs:
-  detect-backend:
+  detect-changes:
     runs-on: ubuntu-latest
     outputs:
       backend_changed: ${{ steps.filter.outputs.backend }}
+      frontend_changed: ${{ steps.filter.outputs.frontend }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -25,10 +26,15 @@ jobs:
               - 'IMPLEMENTATION.md'
               - 'CLAUDE.md'
               - 'docs/**'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+              - 'README.md'
+              - 'IMPLEMENTATION.md'
 
   backend-quick-checks:
-    needs: detect-backend
-    if: needs.detect-backend.outputs.backend_changed == 'true'
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend_changed == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -53,8 +59,8 @@ jobs:
         run: uv run python -m mypy . --show-error-codes --pretty
 
   backend-db-tests:
-    needs: detect-backend
-    if: needs.detect-backend.outputs.backend_changed == 'true'
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend_changed == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -102,9 +108,43 @@ jobs:
           path: backend/pytest-results.xml
           if-no-files-found: ignore
 
+  frontend-checks:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend_changed == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Show tool versions
+        run: |
+          node --version
+          npm --version
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm run test:run
+      - name: Production build
+        run: npm run build
+
   no-backend-note:
-    needs: detect-backend
-    if: needs.detect-backend.outputs.backend_changed != 'true'
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend_changed != 'true'
     runs-on: ubuntu-latest
     steps:
       - run: echo "No backend changes detected."
+
+  no-frontend-note:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend_changed != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No frontend changes detected."
