@@ -6,10 +6,17 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.category import Category
+from app.models.projected_transaction import ProjectedTransaction
 from app.models.transaction import Transaction
-from app.models.types import CategoryType, TransactionType
+from app.models.types import (
+    CategoryType,
+    ProjectedTransactionStatus,
+    ProjectedTransactionType,
+    TransactionType,
+)
 
 
 class ReportRepository:
@@ -224,6 +231,109 @@ class ReportRepository:
             "end_date": end_date,
         }
 
+    async def get_transactions_before_cash_date(
+        self,
+        user_id: UUID,
+        before_date: date,
+    ) -> list[Transaction]:
+        """Get all transactions before a cash date."""
+        stmt = (
+            select(Transaction)
+            .where(
+                Transaction.user_id == user_id,
+                Transaction.date_cash
+                < datetime.combine(before_date, datetime.min.time()),
+            )
+            .order_by(Transaction.date_cash, Transaction.created_at, Transaction.id)
+        )
+        result = await self.session.scalars(stmt)
+        return list(result.all())
+
+    async def get_transactions_in_cash_date_range(
+        self,
+        user_id: UUID,
+        start_date: date,
+        end_date: date,
+    ) -> list[Transaction]:
+        """Get transactions within a cash-date range."""
+        stmt = (
+            select(Transaction)
+            .where(
+                Transaction.user_id == user_id,
+                Transaction.date_cash
+                >= datetime.combine(start_date, datetime.min.time()),
+                Transaction.date_cash
+                <= datetime.combine(end_date, datetime.max.time()),
+            )
+            .order_by(Transaction.date_cash, Transaction.created_at, Transaction.id)
+        )
+        result = await self.session.scalars(stmt)
+        return list(result.all())
+
+    async def get_projected_transactions_in_date_range(
+        self,
+        user_id: UUID,
+        start_date: date,
+        end_date: date,
+        include_skipped: bool = False,
+    ) -> list[ProjectedTransaction]:
+        """Get projected transactions within a projected date range."""
+        stmt = (
+            select(ProjectedTransaction)
+            .where(
+                ProjectedTransaction.planned_payment.has(user_id=user_id),
+                ProjectedTransaction.projected_date >= start_date,
+                ProjectedTransaction.projected_date <= end_date,
+            )
+            .options(selectinload(ProjectedTransaction.planned_payment))
+            .order_by(
+                ProjectedTransaction.projected_date,
+                ProjectedTransaction.created_at,
+                ProjectedTransaction.id,
+            )
+        )
+        if include_skipped:
+            stmt = stmt.where(
+                ProjectedTransaction.status.in_(
+                    [
+                        ProjectedTransactionStatus.PENDING,
+                        ProjectedTransactionStatus.SKIPPED,
+                    ]
+                )
+            )
+        else:
+            stmt = stmt.where(
+                ProjectedTransaction.status == ProjectedTransactionStatus.PENDING
+            )
+
+        result = await self.session.scalars(stmt)
+        return list(result.all())
+
+    async def get_projected_transactions_between_dates(
+        self,
+        user_id: UUID,
+        start_date: date,
+        target_date: date,
+    ) -> list[ProjectedTransaction]:
+        """Get pending projected transactions between two dates."""
+        stmt = (
+            select(ProjectedTransaction)
+            .where(
+                ProjectedTransaction.planned_payment.has(user_id=user_id),
+                ProjectedTransaction.status == ProjectedTransactionStatus.PENDING,
+                ProjectedTransaction.projected_date >= start_date,
+                ProjectedTransaction.projected_date <= target_date,
+            )
+            .options(selectinload(ProjectedTransaction.planned_payment))
+            .order_by(
+                ProjectedTransaction.projected_date,
+                ProjectedTransaction.created_at,
+                ProjectedTransaction.id,
+            )
+        )
+        result = await self.session.scalars(stmt)
+        return list(result.all())
+
     def _get_signed_amount(self, txn: Transaction) -> Decimal:
         """Get signed amount for a transaction based on its type.
 
@@ -252,3 +362,9 @@ class ReportRepository:
         # Adjustments - treat as positive if not specified
         else:
             return txn.amount
+
+    def get_signed_projected_amount(self, projection: ProjectedTransaction) -> Decimal:
+        """Get signed amount for a projected transaction."""
+        if projection.type == ProjectedTransactionType.INCOME:
+            return projection.projected_amount
+        return -projection.projected_amount

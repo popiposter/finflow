@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date as date_type, datetime
+from datetime import date as date_type
+from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 from uuid import UUID
@@ -165,6 +166,55 @@ class PlannedPaymentExecutionRequest(BaseModel):
 
     as_of_date: date_type | None = None
     max_occurrences: int = 100
+
+
+class CashflowLedgerMode(StrEnum):
+    """Supported modes for unified cashflow ledger responses."""
+
+    MIXED = "mixed"
+    ACTUAL_ONLY = "actual_only"
+    PLANNED_ONLY = "planned_only"
+
+
+class CashflowRowType(StrEnum):
+    """Row source types in the unified cashflow ledger."""
+
+    ACTUAL = "actual"
+    PROJECTED = "projected"
+
+
+class CashflowRow(BaseModel):
+    """Unified cashflow ledger row."""
+
+    row_type: CashflowRowType
+    row_id: UUID
+    date: date_type
+    description: str | None = None
+    amount: Decimal
+    type: str
+    status: str
+    balance_after: Decimal
+    planned_payment_id: UUID | None = None
+    projected_transaction_id: UUID | None = None
+    transaction_id: UUID | None = None
+
+
+class CashflowLedgerReportResponse(BaseModel):
+    """Unified cashflow ledger response."""
+
+    opening_balance: Decimal
+    closing_balance: Decimal
+    rows: list[CashflowRow]
+
+
+class CashflowForecastResponse(BaseModel):
+    """Cashflow forecast summary through a target horizon."""
+
+    current_balance: Decimal
+    projected_income: Decimal
+    projected_expense: Decimal
+    projected_balance: Decimal
+    pending_count: int
 
 
 # === Report Schemas ===
