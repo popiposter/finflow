@@ -1,55 +1,55 @@
 # Transaction ingestion knowledge pack
 
 ## Goal
-Implement the first end-to-end transaction ingestion flow from free-form text to stored transaction.
+Implement and refine end-to-end transaction ingestion from free-form text to a
+stored transaction.
 
 ## Scope
 - request/response schemas for parse-and-create endpoint
 - transaction creation service
 - heuristic parser fallback for free-form text
 - endpoint for iOS Shortcut ingestion
-- tests for happy path and invalid input
+- tests for happy path, invalid input, auth, and real persistence behavior
 
 ## Primary endpoint
 - `POST /api/v1/transactions/parse-and-create`
 
 ## Input contract
-Expected request body should support at least:
+Current request body:
 - `text`
-- `source`
-- `created_at` optional
-- `default_account_id` optional
-- `default_currency` optional
+- `account_id` required for now
+- `category_id` optional
 
-## Parsing rules for MVP
+## Parsing rules
 - Extract amount from text using regex/heuristics.
-- Normalize currency, defaulting to project default when omitted.
-- Preserve original text in description.
-- Extract merchant when obvious, but never block creation if merchant is missing.
+- Prefer the amount explicitly marked as money when multiple numbers appear.
+- If no money marker is present, prefer the trailing amount over an earlier count.
+- Preserve a cleaned human-readable description rather than storing raw text unchanged.
 - Infer category only when confidence is reasonable; otherwise allow uncategorized transaction.
+- Infer transaction type only for simple high-confidence cases such as income/refund keywords.
+- If a parsed category name matches a user category exactly, auto-attach it.
 - If parsing is uncertain, prefer partial structured output over failure.
 
 ## Architecture rules
 - Route remains thin.
 - Parsing logic lives in a service/helper module.
 - Keep parser implementation replaceable by future LLM-based parsing.
-- Log parse decisions carefully, but never log secrets.
+- Validate real account/category ownership before persisting.
+- Use authenticated DB lookups for account and optional category before creating the transaction.
 
 ## Do not do
 - Do not call external LLM APIs in this milestone unless the issue explicitly asks for it.
 - Do not over-engineer NLP.
-- Do not reject valid transactions just because merchant/category inference failed.
+- Do not reject valid transactions just because category inference failed.
+- Do not silently write into another user's account or category.
+- Do not pretend default-account selection exists until the product issue for it is implemented.
 
 ## Tests
 - Parse amount from simple Russian phrase.
-- Create expense transaction from text.
+- Create transaction from text with authenticated persistence.
 - Missing amount returns validation/business error.
-- Merchant/category inference is optional.
-
-## Suggested implementation order
-1. Add request/response schemas.
-2. Add parser helper/service.
-3. Add transaction creation service.
-4. Add endpoint.
-5. Add tests.
-6. Update docs if parser conventions stabilize.
+- Category inference is optional.
+- Multiple-number phrases pick the expected amount.
+- Auth and ownership validation are covered.
+- Parser can infer simple `income` and `refund` cases from high-confidence keywords.
+- If category text matches an existing user category, the persisted transaction should attach it.
