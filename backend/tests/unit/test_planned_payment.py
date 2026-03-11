@@ -161,79 +161,48 @@ class TestRecurrenceLogic:
 
     def test_daily_recurrence(self) -> None:
         """Test daily recurrence date computation."""
-        from app.services.planned_payment_service import (
-            PlannedPaymentGenerationService,
-        )
+        from app.services.planned_payment_service import compute_next_due_date
 
-        # Test using the service's method
         start = date(2024, 1, 1)
         current = date(2024, 1, 1)
-        service = PlannedPaymentGenerationService.__new__(
-            PlannedPaymentGenerationService
-        )
-
-        next_date = service._compute_next_due_date(start, current, Recurrence.DAILY)
+        next_date = compute_next_due_date(start, current, Recurrence.DAILY)
         assert next_date == date(2024, 1, 2)
 
     def test_weekly_recurrence(self) -> None:
         """Test weekly recurrence date computation."""
-        from app.services.planned_payment_service import (
-            PlannedPaymentGenerationService,
-        )
+        from app.services.planned_payment_service import compute_next_due_date
 
         start = date(2024, 1, 1)
         current = date(2024, 1, 1)
-        service = PlannedPaymentGenerationService.__new__(
-            PlannedPaymentGenerationService
-        )
-
-        next_date = service._compute_next_due_date(start, current, Recurrence.WEEKLY)
+        next_date = compute_next_due_date(start, current, Recurrence.WEEKLY)
         assert next_date == date(2024, 1, 8)
 
     def test_monthly_recurrence(self) -> None:
         """Test monthly recurrence date computation."""
-        from app.services.planned_payment_service import (
-            PlannedPaymentGenerationService,
-        )
+        from app.services.planned_payment_service import compute_next_due_date
 
         start = date(2024, 1, 15)
         current = date(2024, 1, 15)
-        service = PlannedPaymentGenerationService.__new__(
-            PlannedPaymentGenerationService
-        )
-
-        next_date = service._compute_next_due_date(start, current, Recurrence.MONTHLY)
+        next_date = compute_next_due_date(start, current, Recurrence.MONTHLY)
         assert next_date == date(2024, 2, 15)
 
     def test_monthly_recurrence_end_of_month(self) -> None:
         """Test monthly recurrence when start date is at month end."""
-        from app.services.planned_payment_service import (
-            PlannedPaymentGenerationService,
-        )
+        from app.services.planned_payment_service import compute_next_due_date
 
         # Start on Jan 31, should go to Feb 28/29
         start = date(2024, 1, 31)
         current = date(2024, 1, 31)
-        service = PlannedPaymentGenerationService.__new__(
-            PlannedPaymentGenerationService
-        )
-
-        next_date = service._compute_next_due_date(start, current, Recurrence.MONTHLY)
+        next_date = compute_next_due_date(start, current, Recurrence.MONTHLY)
         assert next_date == date(2024, 2, 29)  # 2024 is leap year
 
     def test_monthly_recurrence_31st_to_30th(self) -> None:
         """Test monthly recurrence from 31st to next month's last day."""
-        from app.services.planned_payment_service import (
-            PlannedPaymentGenerationService,
-        )
+        from app.services.planned_payment_service import compute_next_due_date
 
         # Start on 31st, July has 31 days
         start = date(2024, 1, 31)
         current = date(2024, 3, 31)  # March 31
-        service = PlannedPaymentGenerationService.__new__(
-            PlannedPaymentGenerationService
-        )
-
-        next_date = service._compute_next_due_date(start, current, Recurrence.MONTHLY)
+        next_date = compute_next_due_date(start, current, Recurrence.MONTHLY)
         # April has 30 days, so should be April 30
         assert next_date == date(2024, 4, 30)

@@ -117,7 +117,7 @@ class TransactionOut(TransactionBase):
 
 
 class PlannedPaymentBase(BaseModel):
-    """Base planned payment schema."""
+    """Base planned-payment template schema."""
 
     account_id: UUID
     category_id: UUID | None = None
@@ -131,11 +131,11 @@ class PlannedPaymentBase(BaseModel):
 
 
 class PlannedPaymentCreate(PlannedPaymentBase):
-    """Schema for planned payment creation."""
+    """Schema for planned-payment template creation."""
 
 
 class PlannedPaymentOut(BaseModel):
-    """Schema for planned payment responses."""
+    """Schema for planned-payment template responses."""
 
     id: UUID
     user_id: UUID
@@ -161,22 +161,6 @@ class ProjectionGenerationResult(BaseModel):
     generated_projections: list[UUID]
     next_due_at: date_type
     skipped_occurrences: int = 0
-
-
-class ProjectionExecutionSummary(BaseModel):
-    """Summary of a projection generation run."""
-
-    total_processed: int
-    total_generated: int
-    skipped_occurrences: int
-    details: list[ProjectionGenerationResult]
-
-
-class PlannedPaymentExecutionRequest(BaseModel):
-    """Request schema for planned payment execution endpoint."""
-
-    as_of_date: date_type | None = None
-    max_occurrences: int = 100
 
 
 class CashflowLedgerMode(StrEnum):
