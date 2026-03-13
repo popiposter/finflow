@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, CalendarClock, Sparkles, Wallet } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
@@ -13,6 +13,7 @@ import { listProjectedTransactions } from "@/shared/api/projections";
 import { getForecast, getLedgerReport } from "@/shared/api/reports";
 import { parseAndCreateTransaction } from "@/shared/api/transactions";
 import { useAppIntl } from "@/shared/lib/i18n";
+import { getFieldErrorMessage, getValidationMessages } from "@/shared/lib/validation";
 import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { projectionStatusLabel, transactionTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
@@ -20,18 +21,26 @@ import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 
-const captureSchema = z.object({
-  text: z.string().min(3),
-  account_id: z.string().uuid(),
-  category_id: z.string().optional(),
-});
-
-type CaptureValues = z.infer<typeof captureSchema>;
+type CaptureValues = {
+  text: string;
+  account_id: string;
+  category_id?: string;
+};
 
 export function DashboardPage() {
   const intl = useAppIntl();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
+  const validation = getValidationMessages(intl);
+  const captureSchema = useMemo(
+    () =>
+      z.object({
+        text: z.string().trim().min(3, validation.shortCapture),
+        account_id: z.string().uuid(validation.invalidSelection),
+        category_id: z.string().optional(),
+      }),
+    [validation],
+  );
   const captureForm = useForm<CaptureValues>({
     resolver: zodResolver(captureSchema),
     defaultValues: {
@@ -210,6 +219,11 @@ export function DashboardPage() {
                 rows={3}
                 {...captureForm.register("text")}
               />
+              {getFieldErrorMessage(captureForm.formState.errors.text) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(captureForm.formState.errors.text)}
+                </small>
+              ) : null}
             </label>
 
             <div className="field-grid field-grid--two">
@@ -223,6 +237,11 @@ export function DashboardPage() {
                     </option>
                   ))}
                 </select>
+                {getFieldErrorMessage(captureForm.formState.errors.account_id) ? (
+                  <small className="field-error">
+                    {getFieldErrorMessage(captureForm.formState.errors.account_id)}
+                  </small>
+                ) : null}
               </label>
 
               <label className="field">

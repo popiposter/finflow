@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -11,6 +11,7 @@ import { useAppIntl } from "@/shared/lib/i18n";
 import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { accountTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
+import { getFieldErrorMessage, getValidationMessages } from "@/shared/lib/validation";
 import { formatCurrency } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
@@ -26,21 +27,32 @@ const accountTypes = [
   "other",
 ] as const satisfies AccountType[];
 
-const schema = z.object({
-  name: z.string().min(2),
-  type: z.enum(accountTypes),
-  description: z.string().optional(),
-  current_balance: z.string().optional(),
-  currency_code: z.string().min(3),
-  is_active: z.boolean().default(true),
-});
-
-type AccountFormValues = z.infer<typeof schema>;
+type AccountFormValues = {
+  name: string;
+  type: AccountType;
+  description?: string;
+  current_balance?: string;
+  currency_code: string;
+  is_active: boolean;
+};
 
 export function AccountsSettingsPage() {
   const intl = useAppIntl();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
+  const validation = getValidationMessages(intl);
+  const schema = useMemo(
+    () =>
+      z.object({
+        name: z.string().trim().min(2, validation.shortName),
+        type: z.enum(accountTypes),
+        description: z.string().optional(),
+        current_balance: z.string().optional(),
+        currency_code: z.string().trim().min(3, validation.currencyCode),
+        is_active: z.boolean().default(true),
+      }),
+    [validation],
+  );
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -212,6 +224,9 @@ export function AccountsSettingsPage() {
           <label className="field">
             <span>{intl.formatMessage({ id: "common.name" })}</span>
             <input {...form.register("name")} />
+            {getFieldErrorMessage(form.formState.errors.name) ? (
+              <small className="field-error">{getFieldErrorMessage(form.formState.errors.name)}</small>
+            ) : null}
           </label>
 
           <div className="field-grid field-grid--two">
@@ -229,6 +244,11 @@ export function AccountsSettingsPage() {
             <label className="field">
               <span>{intl.formatMessage({ id: "common.currency" })}</span>
               <input {...form.register("currency_code")} />
+              {getFieldErrorMessage(form.formState.errors.currency_code) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(form.formState.errors.currency_code)}
+                </small>
+              ) : null}
             </label>
           </div>
 

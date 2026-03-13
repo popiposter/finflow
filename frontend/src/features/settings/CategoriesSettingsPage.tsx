@@ -11,27 +11,41 @@ import { useAppIntl } from "@/shared/lib/i18n";
 import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { categoryTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
+import { getFieldErrorMessage, getValidationMessages } from "@/shared/lib/validation";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { DialogSheet } from "@/shared/ui/DialogSheet";
 
 const categoryTypes = ["income", "expense"] as const satisfies CategoryType[];
 
-const schema = z.object({
-  name: z.string().min(2),
-  type: z.enum(categoryTypes),
-  description: z.string().optional(),
-  parent_id: z.string().optional(),
-  is_active: z.boolean().default(true),
-  display_order: z.coerce.number().default(0),
-});
-
-type CategoryFormValues = z.infer<typeof schema>;
+type CategoryFormValues = {
+  name: string;
+  type: CategoryType;
+  description?: string;
+  parent_id?: string;
+  is_active: boolean;
+  display_order: number;
+};
 
 export function CategoriesSettingsPage() {
   const intl = useAppIntl();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
+  const validation = getValidationMessages(intl);
+  const schema = useMemo(
+    () =>
+      z.object({
+        name: z.string().trim().min(2, validation.shortName),
+        type: z.enum(categoryTypes),
+        description: z.string().optional(),
+        parent_id: z.string().optional(),
+        is_active: z.boolean().default(true),
+        display_order: z.coerce.number({
+          invalid_type_error: validation.invalidNumber,
+        }).default(0),
+      }),
+    [validation],
+  );
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -219,6 +233,9 @@ export function CategoriesSettingsPage() {
           <label className="field">
             <span>{intl.formatMessage({ id: "common.name" })}</span>
             <input {...form.register("name")} />
+            {getFieldErrorMessage(form.formState.errors.name) ? (
+              <small className="field-error">{getFieldErrorMessage(form.formState.errors.name)}</small>
+            ) : null}
           </label>
 
           <div className="field-grid field-grid--two">
@@ -255,6 +272,11 @@ export function CategoriesSettingsPage() {
             <label className="field">
               <span>{intl.formatMessage({ id: "categories.displayOrder" })}</span>
               <input inputMode="numeric" type="number" {...form.register("display_order")} />
+              {getFieldErrorMessage(form.formState.errors.display_order) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(form.formState.errors.display_order)}
+                </small>
+              ) : null}
             </label>
           </div>
 

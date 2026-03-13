@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarSync, Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -19,6 +19,7 @@ import { useAppIntl } from "@/shared/lib/i18n";
 import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { recurrenceLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
+import { getFieldErrorMessage, getValidationMessages } from "@/shared/lib/validation";
 import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
@@ -26,24 +27,38 @@ import { DialogSheet } from "@/shared/ui/DialogSheet";
 
 const recurrences = ["daily", "weekly", "monthly"] as const satisfies Recurrence[];
 
-const planSchema = z.object({
-  account_id: z.string().uuid(),
-  category_id: z.string().optional(),
-  amount: z.string().min(1),
-  description: z.string().optional(),
-  recurrence: z.enum(recurrences),
-  start_date: z.string().min(1),
-  next_due_at: z.string().optional(),
-  end_date: z.string().optional(),
-  is_active: z.boolean().default(true),
-});
-
-type PlanFormValues = z.infer<typeof planSchema>;
+type PlanFormValues = {
+  account_id: string;
+  category_id?: string;
+  amount: string;
+  description?: string;
+  recurrence: Recurrence;
+  start_date: string;
+  next_due_at?: string;
+  end_date?: string;
+  is_active: boolean;
+};
 
 export function PlansPage() {
   const intl = useAppIntl();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
+  const validation = getValidationMessages(intl);
+  const planSchema = useMemo(
+    () =>
+      z.object({
+        account_id: z.string().uuid(validation.invalidSelection),
+        category_id: z.string().optional(),
+        amount: z.string().trim().min(1, validation.required),
+        description: z.string().optional(),
+        recurrence: z.enum(recurrences),
+        start_date: z.string().min(1, validation.required),
+        next_due_at: z.string().optional(),
+        end_date: z.string().optional(),
+        is_active: z.boolean().default(true),
+      }),
+    [validation],
+  );
   const [editingPlan, setEditingPlan] = useState<PlannedPayment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [generationSummary, setGenerationSummary] = useState<string | null>(null);
@@ -262,15 +277,20 @@ export function PlansPage() {
           <div className="field-grid field-grid--two">
             <label className="field">
               <span>{intl.formatMessage({ id: "common.account" })}</span>
-              <select {...planForm.register("account_id")}>
+                <select {...planForm.register("account_id")}>
                 <option value="">{intl.formatMessage({ id: "common.chooseAccount" })}</option>
                 {accountsQuery.data?.map((account) => (
                   <option key={account.id} value={account.id}>
                     {account.name}
                   </option>
                 ))}
-              </select>
-            </label>
+                </select>
+                {getFieldErrorMessage(planForm.formState.errors.account_id) ? (
+                  <small className="field-error">
+                    {getFieldErrorMessage(planForm.formState.errors.account_id)}
+                  </small>
+                ) : null}
+              </label>
 
             <label className="field">
               <span>{intl.formatMessage({ id: "common.category" })}</span>
@@ -289,6 +309,11 @@ export function PlansPage() {
             <label className="field">
               <span>{intl.formatMessage({ id: "common.amount" })}</span>
               <input inputMode="decimal" placeholder="0.00" {...planForm.register("amount")} />
+              {getFieldErrorMessage(planForm.formState.errors.amount) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(planForm.formState.errors.amount)}
+                </small>
+              ) : null}
             </label>
 
             <label className="field">
@@ -315,6 +340,11 @@ export function PlansPage() {
             <label className="field">
               <span>{intl.formatMessage({ id: "common.start" })}</span>
               <input type="date" {...planForm.register("start_date")} />
+              {getFieldErrorMessage(planForm.formState.errors.start_date) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(planForm.formState.errors.start_date)}
+                </small>
+              ) : null}
             </label>
 
             <label className="field">

@@ -17,6 +17,7 @@ import { useAppIntl } from "@/shared/lib/i18n";
 import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { projectionStatusLabel, transactionTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
+import { getFieldErrorMessage, getValidationMessages } from "@/shared/lib/validation";
 import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
@@ -24,19 +25,28 @@ import { DialogSheet } from "@/shared/ui/DialogSheet";
 
 const statuses = ["pending", "confirmed", "skipped"] as const satisfies ProjectedTransactionStatus[];
 
-const projectionSchema = z.object({
-  projected_amount: z.string().min(1),
-  projected_date: z.string().min(1),
-  projected_description: z.string().optional(),
-  projected_category_id: z.string().optional(),
-});
-
-type ProjectionFormValues = z.infer<typeof projectionSchema>;
+type ProjectionFormValues = {
+  projected_amount: string;
+  projected_date: string;
+  projected_description?: string;
+  projected_category_id?: string;
+};
 
 export function ProjectionsPage() {
   const intl = useAppIntl();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
+  const validation = getValidationMessages(intl);
+  const projectionSchema = useMemo(
+    () =>
+      z.object({
+        projected_amount: z.string().trim().min(1, validation.required),
+        projected_date: z.string().min(1, validation.required),
+        projected_description: z.string().optional(),
+        projected_category_id: z.string().optional(),
+      }),
+    [validation],
+  );
   const [editingProjection, setEditingProjection] = useState<ProjectedTransaction | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<ProjectedTransactionStatus | "">("pending");
@@ -256,11 +266,21 @@ export function ProjectionsPage() {
             <label className="field">
               <span>{intl.formatMessage({ id: "projections.projectedAmount" })}</span>
               <input inputMode="decimal" {...projectionForm.register("projected_amount")} />
+              {getFieldErrorMessage(projectionForm.formState.errors.projected_amount) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(projectionForm.formState.errors.projected_amount)}
+                </small>
+              ) : null}
             </label>
 
             <label className="field">
               <span>{intl.formatMessage({ id: "projections.projectedDate" })}</span>
               <input type="date" {...projectionForm.register("projected_date")} />
+              {getFieldErrorMessage(projectionForm.formState.errors.projected_date) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(projectionForm.formState.errors.projected_date)}
+                </small>
+              ) : null}
             </label>
           </div>
 

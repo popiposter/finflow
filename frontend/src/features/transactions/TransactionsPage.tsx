@@ -23,6 +23,7 @@ import type {
 } from "@/shared/api/types";
 import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { formatImportRowError } from "@/shared/lib/api-errors";
+import { getFieldErrorMessage, getValidationMessages } from "@/shared/lib/validation";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import {
   formatCurrency,
@@ -45,25 +46,21 @@ const transactionTypes = [
   "adjustment",
 ] as const satisfies TransactionType[];
 
-const transactionSchema = z.object({
-  account_id: z.string().uuid(),
-  category_id: z.string().optional(),
-  amount: z.string().min(1),
-  type: z.enum(transactionTypes),
-  description: z.string().optional(),
-  date_accrual: z.string().min(1),
-  date_cash: z.string().min(1),
-  is_reconciled: z.boolean().default(false),
-});
-
-const captureSchema = z.object({
-  text: z.string().min(3),
-  account_id: z.string().uuid(),
-  category_id: z.string().optional(),
-});
-
-type TransactionFormValues = z.infer<typeof transactionSchema>;
-type CaptureValues = z.infer<typeof captureSchema>;
+type TransactionFormValues = {
+  account_id: string;
+  category_id?: string;
+  amount: string;
+  type: TransactionType;
+  description?: string;
+  date_accrual: string;
+  date_cash: string;
+  is_reconciled: boolean;
+};
+type CaptureValues = {
+  text: string;
+  account_id: string;
+  category_id?: string;
+};
 
 type TransactionsPageProps = {
   autoOpenNew?: boolean;
@@ -75,6 +72,30 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
   const location = useLocation();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
+  const validation = getValidationMessages(intl);
+  const transactionSchema = useMemo(
+    () =>
+      z.object({
+        account_id: z.string().uuid(validation.invalidSelection),
+        category_id: z.string().optional(),
+        amount: z.string().trim().min(1, validation.required),
+        type: z.enum(transactionTypes),
+        description: z.string().optional(),
+        date_accrual: z.string().min(1, validation.required),
+        date_cash: z.string().min(1, validation.required),
+        is_reconciled: z.boolean().default(false),
+      }),
+    [validation],
+  );
+  const captureSchema = useMemo(
+    () =>
+      z.object({
+        text: z.string().trim().min(3, validation.shortCapture),
+        account_id: z.string().uuid(validation.invalidSelection),
+        category_id: z.string().optional(),
+      }),
+    [validation],
+  );
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(autoOpenNew);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
@@ -367,6 +388,11 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
                 placeholder={intl.formatMessage({ id: "transactions.placeholder" })}
                 {...captureForm.register("text")}
               />
+              {getFieldErrorMessage(captureForm.formState.errors.text) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(captureForm.formState.errors.text)}
+                </small>
+              ) : null}
             </label>
 
             <div className="field-grid field-grid--two">
@@ -380,6 +406,11 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
                     </option>
                   ))}
                 </select>
+                {getFieldErrorMessage(captureForm.formState.errors.account_id) ? (
+                  <small className="field-error">
+                    {getFieldErrorMessage(captureForm.formState.errors.account_id)}
+                  </small>
+                ) : null}
               </label>
 
               <label className="field">
@@ -503,6 +534,11 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
                     </option>
                   ))}
                 </select>
+                {getFieldErrorMessage(transactionForm.formState.errors.account_id) ? (
+                  <small className="field-error">
+                    {getFieldErrorMessage(transactionForm.formState.errors.account_id)}
+                  </small>
+                ) : null}
               </label>
 
               <label className="field">
@@ -522,6 +558,11 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
             <label className="field">
               <span>{intl.formatMessage({ id: "common.amount" })}</span>
               <input inputMode="decimal" placeholder="0.00" {...transactionForm.register("amount")} />
+              {getFieldErrorMessage(transactionForm.formState.errors.amount) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(transactionForm.formState.errors.amount)}
+                </small>
+              ) : null}
             </label>
 
             <label className="field">
@@ -549,11 +590,21 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
             <label className="field">
               <span>{intl.formatMessage({ id: "transactions.accrualDate" })}</span>
               <input type="datetime-local" {...transactionForm.register("date_accrual")} />
+              {getFieldErrorMessage(transactionForm.formState.errors.date_accrual) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(transactionForm.formState.errors.date_accrual)}
+                </small>
+              ) : null}
             </label>
 
             <label className="field">
               <span>{intl.formatMessage({ id: "transactions.cashDate" })}</span>
               <input type="datetime-local" {...transactionForm.register("date_cash")} />
+              {getFieldErrorMessage(transactionForm.formState.errors.date_cash) ? (
+                <small className="field-error">
+                  {getFieldErrorMessage(transactionForm.formState.errors.date_cash)}
+                </small>
+              ) : null}
             </label>
           </div>
 
