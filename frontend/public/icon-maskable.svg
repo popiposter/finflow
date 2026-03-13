@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>FinFlow maskable icon</title>
+  <rect width="512" height="512" fill="#143128" />
+  <circle cx="256" cy="256" r="206" fill="#1b5b46" />
+  <circle cx="256" cy="256" r="176" fill="#f7ecd3" opacity=".08" />
+  <path
+    d="M177 154h170c17 0 30 13 30 30s-13 30-30 30H207v66h120c17 0 30 13 30 30s-13 30-30 30H207v132c0 17-13 30-30 30s-30-13-30-30V184c0-17 13-30 30-30Z"
+    fill="#fdf8ef"
+  />
+  <path
+    d="M301 143c20 0 39 8 53 22s22 33 22 53c0 33-21 63-53 73l54 76c6 8 8 17 8 26 0 17-13 29-30 29-10 0-20-5-26-14l-78-111h58c21 0 37-16 37-37 0-20-16-36-37-36h-40v-57Z"
+    fill="#f0c577"
+  />
+</svg>

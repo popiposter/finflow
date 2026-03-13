@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "437066017687"
@@ -21,11 +22,27 @@ def upgrade() -> None:
     """Upgrade database schema."""
     # Create projected transaction status enum
     op.execute(
-        "CREATE TYPE projected_transaction_status AS ENUM ('pending', 'confirmed', 'skipped')"
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE projected_transaction_status AS ENUM ('pending', 'confirmed', 'skipped');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;
+        """
     )
     # Create projected transaction type enum
     op.execute(
-        "CREATE TYPE projected_transaction_type AS ENUM ('income', 'expense')"
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE projected_transaction_type AS ENUM ('income', 'expense');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;
+        """
     )
 
     # Projected transactions table
@@ -39,7 +56,12 @@ def upgrade() -> None:
         sa.Column("origin_category_id", sa.Uuid(), nullable=True),
         sa.Column(
             "type",
-            sa.Enum("income", "expense", name="projected_transaction_type"),
+            postgresql.ENUM(
+                "income",
+                "expense",
+                name="projected_transaction_type",
+                create_type=False,
+            ),
             nullable=False,
         ),
         sa.Column("projected_date", sa.Date(), nullable=False),
@@ -48,14 +70,30 @@ def upgrade() -> None:
         sa.Column("projected_category_id", sa.Uuid(), nullable=True),
         sa.Column(
             "status",
-            sa.Enum("pending", "confirmed", "skipped", name="projected_transaction_status"),
+            postgresql.ENUM(
+                "pending",
+                "confirmed",
+                "skipped",
+                name="projected_transaction_status",
+                create_type=False,
+            ),
             nullable=False,
         ),
         sa.Column("transaction_id", sa.Uuid(), nullable=True),
         sa.Column("resolved_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("version", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(
             ["planned_payment_id"],

@@ -93,3 +93,6 @@ def process_revision_directives(
     """Process migration revision directives."""
     # Can be used to customize revision generation
     pass
+
+
+run_migrations()

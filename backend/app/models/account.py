@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.types import MONEY_TYPE, AccountType, Money
+from app.models.types import MONEY_TYPE, AccountType, Money, named_enum
 
 
 class Account(Base):
@@ -43,6 +43,7 @@ class Account(Base):
         index=True,
     )
     type: Mapped[AccountType] = mapped_column(
+        named_enum(AccountType, "account_type"),
         nullable=False,
         index=True,
     )

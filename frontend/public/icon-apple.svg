@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-labelledby="title">
+  <title>FinFlow apple touch icon</title>
+  <rect width="180" height="180" rx="42" fill="#f7efd9" />
+  <rect x="18" y="18" width="144" height="144" rx="34" fill="#1b5b46" />
+  <path
+    d="M63 50h62c6 0 12 5 12 12s-6 12-12 12H76v22h43c7 0 12 6 12 12s-5 12-12 12H76v38c0 7-6 12-13 12s-13-5-13-12V62c0-7 6-12 13-12Z"
+    fill="#fff8f0"
+  />
+  <path
+    d="M107 45c12 0 23 5 31 13s13 19 13 31c0 19-12 37-30 42l31 44c4 5 5 9 5 14 0 7-5 12-13 12-5 0-9-3-12-6l-45-64h33c12 0 21-9 21-21s-9-21-21-21H98V45Z"
+    fill="#efc778"
+  />
+</svg>

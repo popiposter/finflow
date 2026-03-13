@@ -6,19 +6,31 @@ stored transaction.
 
 ## Scope
 - request/response schemas for parse-and-create endpoint
+- request/response schemas for workbook bulk import
 - transaction creation service
+- workbook import service
 - heuristic parser fallback for free-form text
 - endpoint for iOS Shortcut ingestion
+- endpoint for `.xlsx` batch import into actual transactions
 - tests for happy path, invalid input, auth, and real persistence behavior
 
 ## Primary endpoint
 - `POST /api/v1/transactions/parse-and-create`
+- `POST /api/v1/transactions/import`
 
 ## Input contract
 Current request body:
 - `text`
 - `account_id` required for now
 - `category_id` optional
+
+Bulk import contract:
+- multipart form-data
+- `account_id` required
+- `file` required, `.xlsx` only
+- first sheet interpreted as `date`, `description`, `amount`
+- negative amount -> expense, positive amount -> income
+- response summarizes imported IDs plus skipped row errors
 
 ## Parsing rules
 - Extract amount from text using regex/heuristics.
@@ -36,6 +48,8 @@ Current request body:
 - Keep parser implementation replaceable by future LLM-based parsing.
 - Validate real account/category ownership before persisting.
 - Use authenticated DB lookups for account and optional category before creating the transaction.
+- For workbook import, validate the selected account once before row ingestion and report row-level parse issues without failing the whole file.
+- API errors should use the normalized envelope with stable codes for frontend localization.
 
 ## Do not do
 - Do not call external LLM APIs in this milestone unless the issue explicitly asks for it.
@@ -53,3 +67,4 @@ Current request body:
 - Auth and ownership validation are covered.
 - Parser can infer simple `income` and `refund` cases from high-confidence keywords.
 - If category text matches an existing user category, the persisted transaction should attach it.
+- Workbook import covers success path, foreign-account rejection, and invalid-file rejection.

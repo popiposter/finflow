@@ -14,6 +14,11 @@ from app.repositories.transaction_repository import TransactionRepository
 pytestmark = pytest.mark.api
 
 
+def _error_message(response: AsyncClient | object) -> str:
+    data = response.json()
+    return data["error"]["message"]
+
+
 async def _register_and_login(async_client: AsyncClient, email: str) -> tuple[str, str]:
     """Create a user and return (user_id, access_token)."""
     password = "SecurePass123!"
@@ -57,7 +62,7 @@ class TestParseCreateAPI:
         )
 
         assert response.status_code == 400
-        assert "account_id is required" in response.json()["detail"]
+        assert "account_id is required" in _error_message(response)
 
     async def test_parse_and_create_persists_income_with_detected_category(
         self, async_client: AsyncClient
@@ -169,4 +174,4 @@ class TestParseCreateAPI:
         )
 
         assert response.status_code == 400
-        assert response.json()["detail"] == "Account not found"
+        assert _error_message(response) == "Account not found"

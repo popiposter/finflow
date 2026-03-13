@@ -11,7 +11,13 @@ from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.types import MONEY_TYPE, Money, ProjectedTransactionStatus, ProjectedTransactionType
+from app.models.types import (
+    MONEY_TYPE,
+    Money,
+    ProjectedTransactionStatus,
+    ProjectedTransactionType,
+    named_enum,
+)
 
 
 class ProjectedTransaction(Base):
@@ -64,6 +70,7 @@ class ProjectedTransaction(Base):
     )
     # Type of transaction (INCOME/EXPENSE)
     type: Mapped[ProjectedTransactionType] = mapped_column(
+        named_enum(ProjectedTransactionType, "projected_transaction_type"),
         nullable=False,
         index=True,
     )
@@ -89,6 +96,7 @@ class ProjectedTransaction(Base):
 
     # Lifecycle status
     status: Mapped[ProjectedTransactionStatus] = mapped_column(
+        named_enum(ProjectedTransactionStatus, "projected_transaction_status"),
         nullable=False,
         default=ProjectedTransactionStatus.PENDING,
         index=True,

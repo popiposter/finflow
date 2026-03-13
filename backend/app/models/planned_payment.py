@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.types import MONEY_TYPE, Money, Recurrence
+from app.models.types import MONEY_TYPE, Money, Recurrence, named_enum
 
 if TYPE_CHECKING:
     from app.models.projected_transaction import ProjectedTransaction
@@ -73,6 +73,7 @@ class PlannedPayment(Base):
     )
     # Recurrence pattern for generating occurrences
     recurrence: Mapped[Recurrence] = mapped_column(
+        named_enum(Recurrence, "recurrence"),
         nullable=False,
         index=True,
     )

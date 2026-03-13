@@ -19,6 +19,11 @@ from app.db import async_session_factory
 pytestmark = pytest.mark.api
 
 
+def _error_message(response: AsyncClient | object) -> str:
+    data = response.json()
+    return data["error"]["message"]
+
+
 @pytest.mark.api
 class TestCreatePlannedPayment:
     """Tests for POST /api/v1/planned-payments."""
@@ -205,7 +210,7 @@ class TestCreatePlannedPayment:
         )
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "Account not found"
+        assert _error_message(response) == "Account not found"
 
 
 @pytest.mark.api
@@ -367,7 +372,7 @@ class TestUpdatePlannedPayment:
         )
 
         assert update_response.status_code == 404
-        assert update_response.json()["detail"] == "Category not found"
+        assert _error_message(update_response) == "Category not found"
 
 
 @pytest.mark.api
