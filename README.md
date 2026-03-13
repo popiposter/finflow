@@ -1,61 +1,75 @@
 # FinFlow
 
-FinFlow is an installable finance workspace under active product development, with a FastAPI backend and a mobile-first React PWA frontend.
+FinFlow is a personal finance workspace built around one practical idea: keep actual transactions, future expectations, and cashflow reading in the same system.
 
-## Where to start
+Today the repo contains:
+- a FastAPI backend with recurring finance domain logic
+- a mobile-first React PWA frontend
+- a one-command Docker dev stack for local work
 
-- `IMPLEMENTATION.md` — current delivery status and next likely product steps.
-- `CLAUDE.md` — short working contract for AI coding agents.
-- `backend/README.md` — backend-specific developer workflow.
-- `docs/testing-architecture.md` — how tests and CI are structured.
+## What FinFlow Does
 
-## Current scope
+FinFlow is designed around a projection-first lifecycle:
 
-- Authentication foundation.
-- Finance domain models for accounts, categories, transactions, and planned payments.
-- Parse-and-create transaction ingestion with refined parser heuristics and authenticated persistence coverage.
-- Bulk actual-transaction import from `.xlsx` workbooks into a selected account.
-- Planned payments Stage 3 (template-first CRUD and projection-based lifecycle cleanup).
-- Projected transactions Stage 1 (forecast layer, lifecycle, confirmation/skip flow).
-- Projection scheduler Stage 1 (daily projection generation and scheduler health endpoint).
-- Reporting Stage 1 plus unified cashflow ledger and forecast endpoints.
-- Finance CRUD Stage 4 for accounts, categories, and transactions, including partial editing for actual transactions.
-- Frontend v1: React + TypeScript + Vite PWA with cookie-auth session restore, offline persisted reads via TanStack Query + IndexedDB, and mobile-first screens for auth, dashboard, transactions, plans, projections, reports, and settings.
-- Unified API/frontend error handling: normalized backend error envelopes, localized client-side error interpretation, localized client-side validation messages, and a React error boundary fallback.
+`planned payment -> projected transaction -> actual transaction`
 
-## Local developer workflow
+That gives the product a cleaner model for:
+- recurring templates
+- pending forecasts before money actually moves
+- confirmation or skipping of projected rows
+- unified cashflow views over actual and projected data
 
-Use the repo scripts for the default local pass:
+## Current Product Scope
+
+The project already supports:
+- auth with browser session cookies and refresh flow
+- accounts, categories, and actual transaction CRUD
+- transaction patch editing
+- parse-and-create ingestion from free-form text
+- bulk import of actual transactions from `.xlsx`
+- planned payment templates
+- projected transactions with edit, confirm, and skip flows
+- scheduler-backed recurring projection generation
+- P&L, cashflow, unified ledger, and forecast reads
+- installable frontend PWA with offline read cache
+- localized frontend UX in English and Russian
+- normalized API error handling, localized validation, and a React error boundary
+
+## Stack
+
+- Backend: FastAPI, SQLAlchemy async, Alembic, PostgreSQL, uv
+- Frontend: React, TypeScript, Vite, TanStack Query, React Hook Form, Zod
+- PWA: service worker + installable app shell
+- CI: GitHub Actions
+- Local orchestration: Docker Compose
+
+## Quick Start
+
+### Fastest local path
+
+From the repo root:
 
 ```bash
-./scripts/dev/check-backend.sh
-./scripts/dev/assert-clean-git.sh
+docker compose up --build
 ```
 
-If you touch Python code and Ruff is available locally, run it manually before commit:
+This starts:
+- PostgreSQL on `localhost:5432`
+- backend on `http://127.0.0.1:8000`
+- frontend on `http://127.0.0.1:5173`
 
-```bash
-cd backend
-ruff check .
-ruff format .
+PowerShell helper:
+
+```powershell
+./scripts/dev/up-local-stack.ps1
 ```
 
-Ruff is now advisory in the local workflow rather than enforced by repo scripts.
-
-## Frontend quick start
-
-The PWA lives in `frontend/` and expects the backend API on the same origin. In local development, Vite proxies `/api` to `http://127.0.0.1:8000`.
+### Frontend-only workflow
 
 ```bash
 cd frontend
 npm install
 npm run dev
-```
-
-Frontend environment defaults:
-
-```bash
-VITE_API_BASE_URL=/api/v1
 ```
 
 Frontend validation:
@@ -67,35 +81,42 @@ npm run test:run
 npm run build
 ```
 
-The PWA ships an installable app shell, offline read-through cache for successful queries, and blocks offline mutations in the UI rather than queueing them.
-
-## Docker Dev Stack
-
-For an isolated one-command local stack, use Docker Compose from the repo root:
+### Backend checks
 
 ```bash
-docker compose up --build
+./scripts/dev/check-backend.sh
+./scripts/dev/assert-clean-git.sh
 ```
 
-PowerShell helper:
+If `ruff` is installed locally:
 
-```powershell
-./scripts/dev/up-local-stack.ps1
+```bash
+cd backend
+ruff check .
+ruff format .
 ```
 
-This starts:
-- `db` on `localhost:5432`
-- `backend` on `http://127.0.0.1:8000`
-- `frontend` on `http://127.0.0.1:5173`
+## Repo Guide
 
-The compose stack is set up for active development:
-- source directories are bind-mounted, so Python and Vite reload on code changes
-- backend dependencies live in an isolated named volume
-- frontend `node_modules` lives in an isolated named volume
-- backend runs `alembic upgrade head` automatically on startup
+- [IMPLEMENTATION.md](IMPLEMENTATION.md) — delivery status and next likely steps
+- [backend/README.md](backend/README.md) — backend workflow and checks
+- [docs/testing-architecture.md](docs/testing-architecture.md) — test and CI rules
+- [docs/spec/backend.md](docs/spec/backend.md) — backend behavior and API conventions
 
-Update rules during development:
-- app code only changed: keep `docker compose up` running and reload will pick it up
-- Python or npm dependencies changed: restart the affected service, or rerun `docker compose up --build`
-- Dockerfile / compose config changed: rerun `docker compose up --build`
-- want a clean dependency refresh: `docker compose down -v` and then `docker compose up --build`
+## Developer Notes
+
+- Backend and frontend are intended to run on the same origin in production-style setups.
+- Offline behavior is read-only by design for now; mutations are intentionally blocked without a connection.
+- `.xlsx` import currently expects the first sheet in `date / description / amount` order.
+- Error responses use a normalized envelope so the frontend can localize and map them consistently.
+
+## Status
+
+FinFlow is no longer just a backend skeleton. The current `main` branch already includes the core finance workflow end to end:
+- enter or import actual transactions
+- define recurring templates
+- generate and manage projections
+- confirm forecasted rows into actual history
+- read reports and cashflow from the same workspace
+
+The next work is product refinement rather than missing foundation.
