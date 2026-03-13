@@ -3,6 +3,8 @@ import { render } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
+import { AppIntlProvider } from "@/shared/lib/i18n";
+
 type RenderOptions = {
   route?: string;
 };
@@ -28,9 +30,11 @@ export function renderWithProviders(
   const queryClient = createTestQueryClient();
 
   const Wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
-    </QueryClientProvider>
+    <AppIntlProvider>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+      </QueryClientProvider>
+    </AppIntlProvider>
   );
 
   return {

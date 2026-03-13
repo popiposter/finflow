@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.types import MONEY_TYPE, Money, TransactionType
+from app.models.types import MONEY_TYPE, Money, TransactionType, named_enum
 
 if TYPE_CHECKING:
     from app.models.planned_payment import PlannedPayment
@@ -107,6 +107,7 @@ class Transaction(Base):
     )
     # Transaction type determines the nature of the entry
     type: Mapped[TransactionType] = mapped_column(
+        named_enum(TransactionType, "transaction_type"),
         nullable=False,
         index=True,
     )

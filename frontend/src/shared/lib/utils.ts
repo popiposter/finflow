@@ -1,3 +1,5 @@
+import { getCurrentLocale } from "@/shared/lib/i18n";
+
 export function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
@@ -5,7 +7,7 @@ export function cn(...values: Array<string | false | null | undefined>) {
 export function formatCurrency(value: string | number | null | undefined) {
   const safe = Number(value ?? 0);
 
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(getCurrentLocale(), {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 2,
@@ -14,10 +16,10 @@ export function formatCurrency(value: string | number | null | undefined) {
 
 export function formatShortDate(value: string | null | undefined) {
   if (!value) {
-    return "n/a";
+    return getCurrentLocale() === "ru" ? "н/д" : "n/a";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(getCurrentLocale(), {
     month: "short",
     day: "numeric",
     year: "numeric",

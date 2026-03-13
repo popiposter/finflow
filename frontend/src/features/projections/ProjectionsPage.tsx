@@ -13,6 +13,8 @@ import {
   updateProjectedTransaction,
 } from "@/shared/api/projections";
 import type { ProjectedTransaction, ProjectedTransactionStatus } from "@/shared/api/types";
+import { useAppIntl } from "@/shared/lib/i18n";
+import { projectionStatusLabel, transactionTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/Button";
@@ -31,6 +33,7 @@ const projectionSchema = z.object({
 type ProjectionFormValues = z.infer<typeof projectionSchema>;
 
 export function ProjectionsPage() {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
   const [editingProjection, setEditingProjection] = useState<ProjectedTransaction | null>(null);
@@ -137,36 +140,36 @@ export function ProjectionsPage() {
     <div className="page-stack">
       <div className="split-header">
         <div>
-          <p className="eyebrow">Forecast layer</p>
-          <h2 className="section-title">Edit expectations first, then confirm or skip them.</h2>
+          <p className="eyebrow">{intl.formatMessage({ id: "projections.eyebrow" })}</p>
+          <h2 className="section-title">{intl.formatMessage({ id: "projections.title" })}</h2>
         </div>
       </div>
 
       <Card>
         <div className="field-grid field-grid--three">
           <label className="field">
-            <span>Status</span>
+            <span>{intl.formatMessage({ id: "common.status" })}</span>
             <select
               aria-label="Projection status filter"
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as ProjectedTransactionStatus | "")}
             >
-              <option value="">Any status</option>
+              <option value="">{intl.formatMessage({ id: "projections.anyStatus" })}</option>
               {statuses.map((status) => (
                 <option key={status} value={status}>
-                  {status}
+                  {projectionStatusLabel(intl, status)}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="field">
-            <span>From</span>
+            <span>{intl.formatMessage({ id: "common.from" })}</span>
             <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
           </label>
 
           <label className="field">
-            <span>To</span>
+            <span>{intl.formatMessage({ id: "common.to" })}</span>
             <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
           </label>
         </div>
@@ -181,10 +184,13 @@ export function ProjectionsPage() {
                 <article className="projection-row" key={projection.id}>
                   <div>
                     <div className="transaction-row__title">
-                      {projection.projected_description ?? projection.origin_description ?? "Projection"}
+                      {projection.projected_description ??
+                        projection.origin_description ??
+                        intl.formatMessage({ id: "projections.label" })}
                     </div>
                     <div className="transaction-row__meta">
-                      {projection.type} · {formatShortDate(projection.projected_date)}
+                      {transactionTypeLabel(intl, projection.type)} ·{" "}
+                      {formatShortDate(projection.projected_date)}
                     </div>
                   </div>
 
@@ -192,7 +198,7 @@ export function ProjectionsPage() {
                     <div className="projection-row__summary">
                       <strong>{formatCurrency(projection.projected_amount)}</strong>
                       <span className={`status-badge status-badge--${projection.status}`}>
-                        {projection.status}
+                        {projectionStatusLabel(intl, projection.status)}
                       </span>
                     </div>
 
@@ -207,7 +213,7 @@ export function ProjectionsPage() {
                         }}
                       >
                         <Pencil size={14} />
-                        Edit
+                        {intl.formatMessage({ id: "common.edit" })}
                       </button>
                       <button
                         className="inline-action"
@@ -216,7 +222,7 @@ export function ProjectionsPage() {
                         onClick={() => void confirmMutation.mutateAsync(projection.id)}
                       >
                         <CalendarCheck2 size={14} />
-                        Confirm
+                        {intl.formatMessage({ id: "projections.confirm" })}
                       </button>
                       <button
                         className="inline-action inline-action--danger"
@@ -225,7 +231,7 @@ export function ProjectionsPage() {
                         onClick={() => void skipMutation.mutateAsync(projection.id)}
                       >
                         <CircleOff size={14} />
-                        Skip
+                        {intl.formatMessage({ id: "projections.skip" })}
                       </button>
                     </div>
                   </div>
@@ -233,39 +239,39 @@ export function ProjectionsPage() {
               );
             })
           ) : (
-            <div className="empty-state">No projected transactions match this filter set.</div>
+            <div className="empty-state">{intl.formatMessage({ id: "projections.empty" })}</div>
           )}
         </div>
       </Card>
 
       <DialogSheet
-        description="Pending projections can be adjusted before they become actual transactions."
+        description={intl.formatMessage({ id: "projections.dialogDescription" })}
         onOpenChange={setIsDialogOpen}
         open={isDialogOpen}
-        title="Edit projected transaction"
+        title={intl.formatMessage({ id: "projections.editTitle" })}
       >
         <form className="form-stack" onSubmit={onSubmit}>
           <div className="field-grid field-grid--two">
             <label className="field">
-              <span>Projected amount</span>
+              <span>{intl.formatMessage({ id: "projections.projectedAmount" })}</span>
               <input inputMode="decimal" {...projectionForm.register("projected_amount")} />
             </label>
 
             <label className="field">
-              <span>Projected date</span>
+              <span>{intl.formatMessage({ id: "projections.projectedDate" })}</span>
               <input type="date" {...projectionForm.register("projected_date")} />
             </label>
           </div>
 
           <label className="field">
-            <span>Projected description</span>
+            <span>{intl.formatMessage({ id: "projections.projectedDescription" })}</span>
             <input {...projectionForm.register("projected_description")} />
           </label>
 
           <label className="field">
-            <span>Projected category</span>
+            <span>{intl.formatMessage({ id: "projections.projectedCategory" })}</span>
             <select {...projectionForm.register("projected_category_id")}>
-              <option value="">None</option>
+              <option value="">{intl.formatMessage({ id: "common.none" })}</option>
               {categoriesQuery.data?.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -279,7 +285,9 @@ export function ProjectionsPage() {
           ) : null}
 
           <Button disabled={!isOnline || updateMutation.isPending} type="submit">
-            {updateMutation.isPending ? "Saving..." : "Save projection"}
+            {updateMutation.isPending
+              ? intl.formatMessage({ id: "common.saving" })
+              : intl.formatMessage({ id: "projections.save" })}
           </Button>
         </form>
       </DialogSheet>

@@ -2,6 +2,8 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { useAppIntl } from "@/shared/lib/i18n";
+
 type DialogSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -17,6 +19,8 @@ export function DialogSheet({
   description,
   children,
 }: DialogSheetProps) {
+  const intl = useAppIntl();
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -32,7 +36,11 @@ export function DialogSheet({
               ) : null}
             </div>
             <Dialog.Close asChild>
-              <button className="icon-button" type="button" aria-label="Close">
+              <button
+                className="icon-button"
+                type="button"
+                aria-label={intl.formatMessage({ id: "common.close" })}
+              >
                 <X size={18} />
               </button>
             </Dialog.Close>

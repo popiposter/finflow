@@ -3,26 +3,35 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { ProfileMenu } from "@/features/auth/ProfileMenu";
 import { InstallPromptButton } from "@/features/dashboard/InstallPromptButton";
+import { useAppIntl } from "@/shared/lib/i18n";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { cn } from "@/shared/lib/utils";
 
-const primaryNav = [
-  { to: "/", label: "Home", icon: LayoutDashboard },
-  { to: "/transactions", label: "Transactions", icon: ReceiptText },
-  { to: "/plans", label: "Plans", icon: ListTodo },
-  { to: "/projections", label: "Projections", icon: BellRing },
-  { to: "/reports", label: "Reports", icon: Landmark },
-];
-
 export function AppShell() {
+  const intl = useAppIntl();
   const location = useLocation();
   const isOnline = useOnlineStatus();
+  const primaryNav = [
+    { to: "/", label: intl.formatMessage({ id: "shell.home" }), icon: LayoutDashboard },
+    {
+      to: "/transactions",
+      label: intl.formatMessage({ id: "shell.transactions" }),
+      icon: ReceiptText,
+    },
+    { to: "/plans", label: intl.formatMessage({ id: "shell.plans" }), icon: ListTodo },
+    {
+      to: "/projections",
+      label: intl.formatMessage({ id: "shell.projections" }),
+      icon: BellRing,
+    },
+    { to: "/reports", label: intl.formatMessage({ id: "shell.reports" }), icon: Landmark },
+  ];
 
   return (
     <div className="app-shell">
       {!isOnline ? (
         <div className="offline-banner">
-          You're offline. Cached reads stay available, but changes need a connection.
+          {intl.formatMessage({ id: "shell.offlineBanner" })}
         </div>
       ) : null}
 
@@ -30,8 +39,10 @@ export function AppShell() {
         <div className="brand-block">
           <span className="brand-mark">F</span>
           <div>
-            <div className="eyebrow">Installable cashflow workspace</div>
-            <div className="brand-name">FinFlow</div>
+            <div className="eyebrow">
+              {intl.formatMessage({ id: "shell.installableWorkspace" })}
+            </div>
+            <div className="brand-name">{intl.formatMessage({ id: "common.appName" })}</div>
           </div>
         </div>
 
@@ -59,7 +70,7 @@ export function AppShell() {
             to="/settings"
           >
             <Settings2 size={18} />
-            <span>Settings</span>
+            <span>{intl.formatMessage({ id: "shell.settings" })}</span>
           </NavLink>
         </nav>
 
@@ -72,9 +83,11 @@ export function AppShell() {
         <header className="topbar">
           <div>
             <div className="eyebrow">
-              {location.pathname === "/" ? "Dashboard" : "Core finance"}
+              {location.pathname === "/"
+                ? intl.formatMessage({ id: "shell.dashboardEyebrow" })
+                : intl.formatMessage({ id: "shell.coreFinanceEyebrow" })}
             </div>
-            <h1 className="topbar-title">{resolvePageTitle(location.pathname)}</h1>
+            <h1 className="topbar-title">{resolvePageTitle(location.pathname, intl)}</h1>
           </div>
 
           <div className="topbar-actions">
@@ -109,34 +122,37 @@ export function AppShell() {
   );
 }
 
-function resolvePageTitle(pathname: string) {
+function resolvePageTitle(
+  pathname: string,
+  intl: ReturnType<typeof useAppIntl>,
+) {
   if (pathname.startsWith("/transactions")) {
-    return "Transactions";
+    return intl.formatMessage({ id: "shell.transactions" });
   }
 
   if (pathname.startsWith("/plans")) {
-    return "Planned payments";
+    return intl.formatMessage({ id: "shell.plannedPayments" });
   }
 
   if (pathname.startsWith("/projections")) {
-    return "Projected transactions";
+    return intl.formatMessage({ id: "shell.projectedTransactions" });
   }
 
   if (pathname.startsWith("/reports")) {
-    return "Reports and cashflow";
+    return intl.formatMessage({ id: "shell.reportsAndCashflow" });
   }
 
   if (pathname.startsWith("/settings/accounts")) {
-    return "Account settings";
+    return intl.formatMessage({ id: "shell.accountSettings" });
   }
 
   if (pathname.startsWith("/settings/categories")) {
-    return "Category settings";
+    return intl.formatMessage({ id: "shell.categorySettings" });
   }
 
   if (pathname.startsWith("/settings")) {
-    return "Settings";
+    return intl.formatMessage({ id: "shell.settings" });
   }
 
-  return "Finance cockpit";
+  return intl.formatMessage({ id: "shell.financeCockpit" });
 }

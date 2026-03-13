@@ -5,6 +5,7 @@ import {
   type PersistQueryClientProviderProps,
 } from "@tanstack/react-query-persist-client";
 
+import { AppIntlProvider } from "@/shared/lib/i18n";
 import {
   appQueryClient,
   shouldDehydrateQuery,
@@ -24,11 +25,13 @@ const persistOptions: PersistQueryClientProviderProps["persistOptions"] = {
 
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <PersistQueryClientProvider
-      client={appQueryClient}
-      persistOptions={persistOptions}
-    >
-      {children}
-    </PersistQueryClientProvider>
+    <AppIntlProvider>
+      <PersistQueryClientProvider
+        client={appQueryClient}
+        persistOptions={persistOptions}
+      >
+        {children}
+      </PersistQueryClientProvider>
+    </AppIntlProvider>
   );
 }

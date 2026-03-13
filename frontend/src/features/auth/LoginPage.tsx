@@ -4,6 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useLoginMutation } from "@/features/auth/session";
+import { useAppIntl } from "@/shared/lib/i18n";
 import { Button } from "@/shared/ui/Button";
 
 const schema = z.object({
@@ -14,6 +15,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export function LoginPage() {
+  const intl = useAppIntl();
   const navigate = useNavigate();
   const location = useLocation();
   const loginMutation = useLoginMutation();
@@ -34,12 +36,12 @@ export function LoginPage() {
   return (
     <form className="form-stack" onSubmit={onSubmit}>
       <div>
-        <h2 className="section-title">Welcome back</h2>
-        <p className="muted-copy">Use your FinFlow credentials to reopen the workspace.</p>
+        <h2 className="section-title">{intl.formatMessage({ id: "auth.loginTitle" })}</h2>
+        <p className="muted-copy">{intl.formatMessage({ id: "auth.loginCopy" })}</p>
       </div>
 
       <label className="field">
-        <span>Email</span>
+        <span>{intl.formatMessage({ id: "auth.email" })}</span>
         <input type="email" autoComplete="email" {...register("email")} />
         {formState.errors.email ? (
           <small className="field-error">{formState.errors.email.message}</small>
@@ -47,7 +49,7 @@ export function LoginPage() {
       </label>
 
       <label className="field">
-        <span>Password</span>
+        <span>{intl.formatMessage({ id: "auth.password" })}</span>
         <input type="password" autoComplete="current-password" {...register("password")} />
         {formState.errors.password ? (
           <small className="field-error">{formState.errors.password.message}</small>
@@ -59,11 +61,14 @@ export function LoginPage() {
       ) : null}
 
       <Button disabled={loginMutation.isPending} type="submit">
-        {loginMutation.isPending ? "Signing in..." : "Sign in"}
+        {loginMutation.isPending
+          ? intl.formatMessage({ id: "auth.signingIn" })
+          : intl.formatMessage({ id: "auth.signIn" })}
       </Button>
 
       <p className="muted-copy">
-        New here? <Link to="/register">Create an account</Link>
+        {intl.formatMessage({ id: "auth.newHere" })}{" "}
+        <Link to="/register">{intl.formatMessage({ id: "auth.createAccountLink" })}</Link>
       </p>
     </form>
   );

@@ -7,6 +7,8 @@ import { z } from "zod";
 
 import { createCategory, deleteCategory, listCategories, updateCategory } from "@/shared/api/categories";
 import type { Category, CategoryType } from "@/shared/api/types";
+import { useAppIntl } from "@/shared/lib/i18n";
+import { categoryTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
@@ -26,6 +28,7 @@ const schema = z.object({
 type CategoryFormValues = z.infer<typeof schema>;
 
 export function CategoriesSettingsPage() {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -127,8 +130,8 @@ export function CategoriesSettingsPage() {
     <div className="page-stack">
       <div className="split-header">
         <div>
-          <p className="eyebrow">Categories</p>
-          <h2 className="section-title">Keep reporting and quick capture speaking the same language.</h2>
+          <p className="eyebrow">{intl.formatMessage({ id: "settings.categoriesTitle" })}</p>
+          <h2 className="section-title">{intl.formatMessage({ id: "categories.title" })}</h2>
         </div>
         <Button
           disabled={!isOnline}
@@ -139,7 +142,7 @@ export function CategoriesSettingsPage() {
           }}
         >
           <Plus size={16} />
-          New category
+          {intl.formatMessage({ id: "categories.new" })}
         </Button>
       </div>
 
@@ -151,12 +154,20 @@ export function CategoriesSettingsPage() {
                 <div>
                   <div className="transaction-row__title">{category.name}</div>
                   <div className="transaction-row__meta">
-                    {category.type} · order {category.display_order}
+                    {categoryTypeLabel(intl, category.type)} ·{" "}
+                    {intl.formatMessage(
+                      { id: "categories.orderMeta" },
+                      { count: category.display_order },
+                    )}
                   </div>
                 </div>
 
                 <div className="transaction-row__actions">
-                  <strong>{category.parent_id ? "Child" : "Top level"}</strong>
+                  <strong>
+                    {category.parent_id
+                      ? intl.formatMessage({ id: "categories.child" })
+                      : intl.formatMessage({ id: "categories.topLevel" })}
+                  </strong>
                   <div className="row-button-group">
                     <button
                       className="inline-action"
@@ -166,61 +177,65 @@ export function CategoriesSettingsPage() {
                         setEditingCategory(category);
                         setIsDialogOpen(true);
                       }}
-                    >
-                      <Pencil size={14} />
-                      Edit
-                    </button>
+                      >
+                        <Pencil size={14} />
+                        {intl.formatMessage({ id: "common.edit" })}
+                      </button>
                     <button
                       className="inline-action inline-action--danger"
                       disabled={!isOnline || deleteMutation.isPending}
                       type="button"
-                      onClick={() => {
-                        if (window.confirm("Delete this category?")) {
-                          void deleteMutation.mutateAsync(category.id);
-                        }
-                      }}
-                    >
-                      <Trash2 size={14} />
-                      Delete
-                    </button>
+                        onClick={() => {
+                          if (window.confirm(intl.formatMessage({ id: "categories.deleteConfirm" }))) {
+                            void deleteMutation.mutateAsync(category.id);
+                          }
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        {intl.formatMessage({ id: "common.delete" })}
+                      </button>
                   </div>
                 </div>
               </article>
             ))
-          ) : (
-            <div className="empty-state">No categories yet.</div>
-          )}
-        </div>
+            ) : (
+              <div className="empty-state">{intl.formatMessage({ id: "categories.empty" })}</div>
+            )}
+          </div>
       </Card>
 
       <DialogSheet
-        description="Categories drive reports, ingestion hints, and planned-payment classification."
+        description={intl.formatMessage({ id: "categories.dialogDescription" })}
         onOpenChange={setIsDialogOpen}
         open={isDialogOpen}
-        title={editingCategory ? "Edit category" : "New category"}
+        title={
+          editingCategory
+            ? intl.formatMessage({ id: "categories.edit" })
+            : intl.formatMessage({ id: "categories.newDialog" })
+        }
       >
         <form className="form-stack" onSubmit={onSubmit}>
           <label className="field">
-            <span>Name</span>
+            <span>{intl.formatMessage({ id: "common.name" })}</span>
             <input {...form.register("name")} />
           </label>
 
           <div className="field-grid field-grid--two">
             <label className="field">
-              <span>Type</span>
+              <span>{intl.formatMessage({ id: "common.type" })}</span>
               <select {...form.register("type")}>
                 {categoryTypes.map((type) => (
                   <option key={type} value={type}>
-                    {type}
+                    {categoryTypeLabel(intl, type)}
                   </option>
                 ))}
               </select>
             </label>
 
             <label className="field">
-              <span>Parent</span>
+              <span>{intl.formatMessage({ id: "common.parent" })}</span>
               <select {...form.register("parent_id")}>
-                <option value="">None</option>
+                <option value="">{intl.formatMessage({ id: "common.none" })}</option>
                 {availableParents.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -232,19 +247,19 @@ export function CategoriesSettingsPage() {
 
           <div className="field-grid field-grid--two">
             <label className="field">
-              <span>Description</span>
+              <span>{intl.formatMessage({ id: "common.description" })}</span>
               <input {...form.register("description")} />
             </label>
 
             <label className="field">
-              <span>Display order</span>
+              <span>{intl.formatMessage({ id: "categories.displayOrder" })}</span>
               <input inputMode="numeric" type="number" {...form.register("display_order")} />
             </label>
           </div>
 
           <label className="checkbox-field">
             <input type="checkbox" {...form.register("is_active")} />
-            <span>Category is active</span>
+            <span>{intl.formatMessage({ id: "categories.active" })}</span>
           </label>
 
           {createMutation.error || updateMutation.error ? (
@@ -256,11 +271,11 @@ export function CategoriesSettingsPage() {
           <Button disabled={!isOnline || createMutation.isPending || updateMutation.isPending} type="submit">
             {editingCategory
               ? updateMutation.isPending
-                ? "Saving..."
-                : "Save category"
+                ? intl.formatMessage({ id: "common.saving" })
+                : intl.formatMessage({ id: "categories.save" })
               : createMutation.isPending
-                ? "Creating..."
-                : "Create category"}
+                ? intl.formatMessage({ id: "common.creating" })
+                : intl.formatMessage({ id: "categories.create" })}
           </Button>
         </form>
       </DialogSheet>

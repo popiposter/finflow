@@ -8,7 +8,7 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated
 
-from sqlalchemy import Numeric
+from sqlalchemy import Enum, Numeric
 
 # Money fields use Decimal/NUMERIC, not float
 # This ensures precise monetary calculations
@@ -119,6 +119,17 @@ MAX_TRANSACTION_DESCRIPTION_LENGTH = 500
 MONEY_DECIMAL_PLACES = 2
 MONEY_MAX_DIGITS = 18
 
+
+def named_enum(enum_cls: type[StrEnum], name: str) -> Enum:
+    """Create a SQLAlchemy enum bound to an existing named PostgreSQL enum type."""
+    return Enum(
+        enum_cls,
+        name=name,
+        create_type=False,
+        values_callable=lambda members: [member.value for member in members],
+        validate_strings=True,
+    )
+
 # Exports
 __all__ = [
     "AccountType",
@@ -134,4 +145,5 @@ __all__ = [
     "MAX_TRANSACTION_DESCRIPTION_LENGTH",
     "MONEY_DECIMAL_PLACES",
     "MONEY_MAX_DIGITS",
+    "named_enum",
 ]

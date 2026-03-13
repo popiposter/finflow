@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.types import CategoryType
+from app.models.types import CategoryType, named_enum
 
 
 class Category(Base):
@@ -60,6 +60,7 @@ class Category(Base):
         default=None,
     )
     type: Mapped[CategoryType] = mapped_column(
+        named_enum(CategoryType, "category_type"),
         nullable=False,
         index=True,
     )

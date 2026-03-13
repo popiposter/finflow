@@ -15,6 +15,8 @@ import {
   updatePlan,
 } from "@/shared/api/plans";
 import type { PlannedPayment, Recurrence } from "@/shared/api/types";
+import { useAppIntl } from "@/shared/lib/i18n";
+import { recurrenceLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/Button";
@@ -38,6 +40,7 @@ const planSchema = z.object({
 type PlanFormValues = z.infer<typeof planSchema>;
 
 export function PlansPage() {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
   const [editingPlan, setEditingPlan] = useState<PlannedPayment | null>(null);
@@ -133,7 +136,9 @@ export function PlansPage() {
         (sum, item) => sum + item.generated_projections.length,
         0,
       );
-      setGenerationSummary(`${generatedCount} projections generated.`);
+      setGenerationSummary(
+        intl.formatMessage({ id: "plans.generatedSummary" }, { count: generatedCount }),
+      );
       await refreshWorkspace();
     },
   });
@@ -154,8 +159,8 @@ export function PlansPage() {
     <div className="page-stack">
       <div className="split-header">
         <div>
-          <p className="eyebrow">Template-first recurring layer</p>
-          <h2 className="section-title">Build recurring templates before they turn into facts.</h2>
+          <p className="eyebrow">{intl.formatMessage({ id: "plans.eyebrow" })}</p>
+          <h2 className="section-title">{intl.formatMessage({ id: "plans.title" })}</h2>
         </div>
 
         <div className="action-group">
@@ -166,7 +171,9 @@ export function PlansPage() {
             onClick={() => void generateMutation.mutateAsync()}
           >
             <CalendarSync size={16} />
-            {generateMutation.isPending ? "Generating..." : "Generate due"}
+            {generateMutation.isPending
+              ? intl.formatMessage({ id: "dashboard.generating" })
+              : intl.formatMessage({ id: "plans.generateDue" })}
           </Button>
           <Button
             disabled={!isOnline || !accountsQuery.data?.length}
@@ -177,7 +184,7 @@ export function PlansPage() {
             }}
           >
             <Plus size={16} />
-            New plan
+            {intl.formatMessage({ id: "plans.new" })}
           </Button>
         </div>
       </div>
@@ -191,10 +198,14 @@ export function PlansPage() {
               <article className="transaction-row" key={plan.id}>
                 <div>
                   <div className="transaction-row__title">
-                    {plan.description ?? "Untitled planned payment"}
+                    {plan.description ?? intl.formatMessage({ id: "plans.untitled" })}
                   </div>
                   <div className="transaction-row__meta">
-                    {plan.recurrence} · next due {formatShortDate(plan.next_due_at)}
+                    {recurrenceLabel(intl, plan.recurrence)} ·{" "}
+                    {intl.formatMessage(
+                      { id: "plans.nextDue" },
+                      { date: formatShortDate(plan.next_due_at) },
+                    )}
                   </div>
                 </div>
 
@@ -209,45 +220,49 @@ export function PlansPage() {
                         setEditingPlan(plan);
                         setIsDialogOpen(true);
                       }}
-                    >
-                      <Pencil size={14} />
-                      Edit
-                    </button>
+                      >
+                        <Pencil size={14} />
+                        {intl.formatMessage({ id: "common.edit" })}
+                      </button>
                     <button
                       className="inline-action inline-action--danger"
                       disabled={!isOnline || deleteMutation.isPending}
                       type="button"
-                      onClick={() => {
-                        if (window.confirm("Delete this planned payment?")) {
-                          void deleteMutation.mutateAsync(plan.id);
-                        }
-                      }}
-                    >
-                      <Trash2 size={14} />
-                      Delete
-                    </button>
+                        onClick={() => {
+                          if (window.confirm(intl.formatMessage({ id: "plans.deleteConfirm" }))) {
+                            void deleteMutation.mutateAsync(plan.id);
+                          }
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        {intl.formatMessage({ id: "common.delete" })}
+                      </button>
                   </div>
                 </div>
               </article>
             ))
-          ) : (
-            <div className="empty-state">No planned payments yet.</div>
+            ) : (
+            <div className="empty-state">{intl.formatMessage({ id: "plans.empty" })}</div>
           )}
         </div>
       </Card>
 
       <DialogSheet
-        description="Templates generate pending projected transactions on schedule."
+        description={intl.formatMessage({ id: "plans.dialogDescription" })}
         onOpenChange={setIsDialogOpen}
         open={isDialogOpen}
-        title={editingPlan ? "Edit plan" : "New planned payment"}
+        title={
+          editingPlan
+            ? intl.formatMessage({ id: "plans.edit" })
+            : intl.formatMessage({ id: "plans.newDialog" })
+        }
       >
         <form className="form-stack" onSubmit={onSubmit}>
           <div className="field-grid field-grid--two">
             <label className="field">
-              <span>Account</span>
+              <span>{intl.formatMessage({ id: "common.account" })}</span>
               <select {...planForm.register("account_id")}>
-                <option value="">Choose account</option>
+                <option value="">{intl.formatMessage({ id: "common.chooseAccount" })}</option>
                 {accountsQuery.data?.map((account) => (
                   <option key={account.id} value={account.id}>
                     {account.name}
@@ -257,9 +272,9 @@ export function PlansPage() {
             </label>
 
             <label className="field">
-              <span>Category</span>
+              <span>{intl.formatMessage({ id: "common.category" })}</span>
               <select {...planForm.register("category_id")}>
-                <option value="">None</option>
+                <option value="">{intl.formatMessage({ id: "common.none" })}</option>
                 {categoriesQuery.data?.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -271,16 +286,16 @@ export function PlansPage() {
 
           <div className="field-grid field-grid--two">
             <label className="field">
-              <span>Amount</span>
+              <span>{intl.formatMessage({ id: "common.amount" })}</span>
               <input inputMode="decimal" placeholder="0.00" {...planForm.register("amount")} />
             </label>
 
             <label className="field">
-              <span>Recurrence</span>
+              <span>{intl.formatMessage({ id: "common.recurrence" })}</span>
               <select {...planForm.register("recurrence")}>
                 {recurrences.map((recurrence) => (
                   <option key={recurrence} value={recurrence}>
-                    {recurrence}
+                    {recurrenceLabel(intl, recurrence)}
                   </option>
                 ))}
               </select>
@@ -288,30 +303,33 @@ export function PlansPage() {
           </div>
 
           <label className="field">
-            <span>Description</span>
-            <input placeholder="Rent, payroll, subscriptions..." {...planForm.register("description")} />
+            <span>{intl.formatMessage({ id: "common.description" })}</span>
+            <input
+              placeholder={intl.formatMessage({ id: "plans.descriptionPlaceholder" })}
+              {...planForm.register("description")}
+            />
           </label>
 
           <div className="field-grid field-grid--three">
             <label className="field">
-              <span>Start</span>
+              <span>{intl.formatMessage({ id: "common.start" })}</span>
               <input type="date" {...planForm.register("start_date")} />
             </label>
 
             <label className="field">
-              <span>Next due</span>
+              <span>{intl.formatMessage({ id: "plans.nextDueLabel" })}</span>
               <input type="date" {...planForm.register("next_due_at")} />
             </label>
 
             <label className="field">
-              <span>End</span>
+              <span>{intl.formatMessage({ id: "common.end" })}</span>
               <input type="date" {...planForm.register("end_date")} />
             </label>
           </div>
 
           <label className="checkbox-field">
             <input type="checkbox" {...planForm.register("is_active")} />
-            <span>Plan is active</span>
+            <span>{intl.formatMessage({ id: "plans.active" })}</span>
           </label>
 
           {createMutation.error || updateMutation.error ? (
@@ -326,11 +344,11 @@ export function PlansPage() {
           >
             {editingPlan
               ? updateMutation.isPending
-                ? "Saving..."
-                : "Save plan"
+                ? intl.formatMessage({ id: "common.saving" })
+                : intl.formatMessage({ id: "plans.save" })
               : createMutation.isPending
-                ? "Creating..."
-                : "Create plan"}
+                ? intl.formatMessage({ id: "common.creating" })
+                : intl.formatMessage({ id: "plans.create" })}
           </Button>
         </form>
       </DialogSheet>

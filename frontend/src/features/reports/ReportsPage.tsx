@@ -9,10 +9,13 @@ import {
   getPnlReport,
 } from "@/shared/api/reports";
 import type { CashflowLedgerMode, ReportGroupBy } from "@/shared/api/types";
+import { useAppIntl } from "@/shared/lib/i18n";
+import { ledgerModeLabel } from "@/shared/lib/labels";
 import { formatCurrency } from "@/shared/lib/utils";
 import { Card } from "@/shared/ui/Card";
 
 export function ReportsPage() {
+  const intl = useAppIntl();
   const [aggregateStart, setAggregateStart] = useState(offsetDate(-30));
   const [aggregateEnd, setAggregateEnd] = useState(offsetDate(30));
   const [groupBy, setGroupBy] = useState<ReportGroupBy>("by_category");
@@ -61,38 +64,38 @@ export function ReportsPage() {
       <Card>
         <div className="field-grid field-grid--three">
           <label className="field">
-            <span>From</span>
+            <span>{intl.formatMessage({ id: "common.from" })}</span>
             <input type="date" value={aggregateStart} onChange={(event) => setAggregateStart(event.target.value)} />
           </label>
 
           <label className="field">
-            <span>To</span>
+            <span>{intl.formatMessage({ id: "common.to" })}</span>
             <input type="date" value={aggregateEnd} onChange={(event) => setAggregateEnd(event.target.value)} />
           </label>
 
           <label className="field">
-            <span>Group</span>
+            <span>{intl.formatMessage({ id: "reports.group" })}</span>
             <select value={groupBy} onChange={(event) => setGroupBy(event.target.value as ReportGroupBy)}>
-              <option value="by_category">By category</option>
-              <option value="by_type">By type</option>
+              <option value="by_category">{intl.formatMessage({ id: "reports.groupByCategory" })}</option>
+              <option value="by_type">{intl.formatMessage({ id: "reports.groupByType" })}</option>
             </select>
           </label>
         </div>
       </Card>
 
       <Tabs.Root className="tabs-root" defaultValue="forecast">
-        <Tabs.List className="tabs-list" aria-label="Report views">
+        <Tabs.List className="tabs-list" aria-label={intl.formatMessage({ id: "reports.views" })}>
           <Tabs.Trigger className="tab-trigger" value="forecast">
-            Forecast
+            {intl.formatMessage({ id: "reports.forecast" })}
           </Tabs.Trigger>
           <Tabs.Trigger className="tab-trigger" value="ledger">
-            Unified ledger
+            {intl.formatMessage({ id: "reports.unifiedLedger" })}
           </Tabs.Trigger>
           <Tabs.Trigger className="tab-trigger" value="pnl">
-            P&amp;L
+            {intl.formatMessage({ id: "reports.pnl" })}
           </Tabs.Trigger>
           <Tabs.Trigger className="tab-trigger" value="cash">
-            Cashflow
+            {intl.formatMessage({ id: "reports.cashflow" })}
           </Tabs.Trigger>
         </Tabs.List>
 
@@ -100,7 +103,7 @@ export function ReportsPage() {
           <Card>
             <div className="field-grid field-grid--two">
               <label className="field">
-                <span>Target date</span>
+                <span>{intl.formatMessage({ id: "reports.targetDate" })}</span>
                 <input
                   type="date"
                   value={forecastTarget}
@@ -110,10 +113,10 @@ export function ReportsPage() {
             </div>
 
             <div className="metric-grid">
-              <MetricCard label="Current balance" value={forecastQuery.data?.current_balance} />
-              <MetricCard label="Projected income" value={forecastQuery.data?.projected_income} />
-              <MetricCard label="Projected expense" value={forecastQuery.data?.projected_expense} />
-              <MetricCard label="Projected balance" value={forecastQuery.data?.projected_balance} />
+              <MetricCard label={intl.formatMessage({ id: "common.currentBalance" })} value={forecastQuery.data?.current_balance} />
+              <MetricCard label={intl.formatMessage({ id: "common.projectedIncome" })} value={forecastQuery.data?.projected_income} />
+              <MetricCard label={intl.formatMessage({ id: "common.projectedExpense" })} value={forecastQuery.data?.projected_expense} />
+              <MetricCard label={intl.formatMessage({ id: "common.projectedBalance" })} value={forecastQuery.data?.projected_balance} />
             </div>
           </Card>
         </Tabs.Content>
@@ -122,14 +125,14 @@ export function ReportsPage() {
           <Card>
             <div className="field-grid field-grid--two">
               <label className="field">
-                <span>Mode</span>
+                <span>{intl.formatMessage({ id: "reports.mode" })}</span>
                 <select
                   value={ledgerMode}
                   onChange={(event) => setLedgerMode(event.target.value as CashflowLedgerMode)}
                 >
-                  <option value="mixed">Mixed</option>
-                  <option value="actual_only">Actual only</option>
-                  <option value="planned_only">Planned only</option>
+                  <option value="mixed">{ledgerModeLabel(intl, "mixed")}</option>
+                  <option value="actual_only">{ledgerModeLabel(intl, "actual_only")}</option>
+                  <option value="planned_only">{ledgerModeLabel(intl, "planned_only")}</option>
                 </select>
               </label>
 
@@ -139,13 +142,18 @@ export function ReportsPage() {
                   type="checkbox"
                   onChange={(event) => setIncludeSkipped(event.target.checked)}
                 />
-                <span>Include skipped projections</span>
+                <span>{intl.formatMessage({ id: "reports.includeSkipped" })}</span>
               </label>
             </div>
 
             <div className="callout">
-              Opening {formatCurrency(ledgerQuery.data?.opening_balance)} · Closing{" "}
-              {formatCurrency(ledgerQuery.data?.closing_balance)}
+              {intl.formatMessage(
+                { id: "reports.openingClosing" },
+                {
+                  opening: formatCurrency(ledgerQuery.data?.opening_balance),
+                  closing: formatCurrency(ledgerQuery.data?.closing_balance),
+                },
+              )}
             </div>
 
             <div className="list-stack">
@@ -153,19 +161,26 @@ export function ReportsPage() {
                 ledgerQuery.data.rows.map((row) => (
                   <article className="ledger-row" key={row.row_id}>
                     <div>
-                      <div className="ledger-row__title">{row.description ?? "Ledger row"}</div>
+                      <div className="ledger-row__title">
+                        {row.description ?? intl.formatMessage({ id: "reports.ledgerRow" })}
+                      </div>
                       <div className="ledger-row__meta">
                         {row.row_type} · {row.status}
                       </div>
                     </div>
                     <div className="ledger-row__amount">
                       <strong>{formatCurrency(row.amount)}</strong>
-                      <span>after {formatCurrency(row.balance_after)}</span>
+                      <span>
+                        {intl.formatMessage(
+                          { id: "reports.balanceAfter" },
+                          { value: formatCurrency(row.balance_after) },
+                        )}
+                      </span>
                     </div>
                   </article>
                 ))
               ) : (
-                <div className="empty-state">No ledger rows in this period.</div>
+                <div className="empty-state">{intl.formatMessage({ id: "reports.noLedger" })}</div>
               )}
             </div>
           </Card>
@@ -173,9 +188,14 @@ export function ReportsPage() {
 
         <Tabs.Content className="tab-panel" value="pnl">
           <Card>
-            <div className="callout">Total {formatCurrency(pnlQuery.data?.grand_total)}</div>
+            <div className="callout">
+              {intl.formatMessage(
+                { id: "reports.total" },
+                { value: formatCurrency(pnlQuery.data?.grand_total) },
+              )}
+            </div>
             <ReportTotalList
-              emptyMessage="No P&amp;L totals yet."
+              emptyMessage={intl.formatMessage({ id: "reports.noPnl" })}
               items={
                 groupBy === "by_type"
                   ? pnlQuery.data?.totals_by_type.map((item) => ({
@@ -194,10 +214,13 @@ export function ReportsPage() {
         <Tabs.Content className="tab-panel" value="cash">
           <Card>
             <div className="callout">
-              Cash total {formatCurrency(cashflowQuery.data?.grand_total)}
+              {intl.formatMessage(
+                { id: "reports.cashTotal" },
+                { value: formatCurrency(cashflowQuery.data?.grand_total) },
+              )}
             </div>
             <ReportTotalList
-              emptyMessage="No cashflow totals yet."
+              emptyMessage={intl.formatMessage({ id: "reports.noCashflow" })}
               items={
                 groupBy === "by_type"
                   ? cashflowQuery.data?.totals_by_type.map((item) => ({

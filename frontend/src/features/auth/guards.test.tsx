@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { RequireAuth } from "@/features/auth/RequireAuth";
 import { RequirePublic } from "@/features/auth/RequirePublic";
 import { useSessionQuery } from "@/features/auth/session";
+import { AppIntlProvider } from "@/shared/lib/i18n";
 
 vi.mock("@/features/auth/session", () => ({
   useSessionQuery: vi.fn(),
@@ -21,14 +22,16 @@ describe("route guards", () => {
     } as ReturnType<typeof useSessionQuery>);
 
     render(
-      <MemoryRouter initialEntries={["/private"]}>
-        <Routes>
-          <Route path="/login" element={<div>Login page</div>} />
-          <Route element={<RequireAuth />}>
-            <Route path="/private" element={<div>Protected page</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>,
+      <AppIntlProvider>
+        <MemoryRouter initialEntries={["/private"]}>
+          <Routes>
+            <Route path="/login" element={<div>Login page</div>} />
+            <Route element={<RequireAuth />}>
+              <Route path="/private" element={<div>Protected page</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </AppIntlProvider>,
     );
 
     expect(screen.getByText("Login page")).toBeInTheDocument();
@@ -42,14 +45,16 @@ describe("route guards", () => {
     } as ReturnType<typeof useSessionQuery>);
 
     render(
-      <MemoryRouter initialEntries={["/login"]}>
-        <Routes>
-          <Route path="/" element={<div>Dashboard</div>} />
-          <Route element={<RequirePublic />}>
-            <Route path="/login" element={<div>Login page</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>,
+      <AppIntlProvider>
+        <MemoryRouter initialEntries={["/login"]}>
+          <Routes>
+            <Route path="/" element={<div>Dashboard</div>} />
+            <Route element={<RequirePublic />}>
+              <Route path="/login" element={<div>Login page</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </AppIntlProvider>,
     );
 
     expect(screen.getByText("Dashboard")).toBeInTheDocument();

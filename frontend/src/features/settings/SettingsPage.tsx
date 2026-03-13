@@ -2,10 +2,13 @@ import { ChevronRight, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useLogoutMutation, useSessionQuery } from "@/features/auth/session";
+import { LanguageSwitcher } from "@/features/settings/LanguageSwitcher";
+import { useAppIntl } from "@/shared/lib/i18n";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 
 export function SettingsPage() {
+  const intl = useAppIntl();
   const navigate = useNavigate();
   const sessionQuery = useSessionQuery();
   const logoutMutation = useLogoutMutation();
@@ -18,10 +21,12 @@ export function SettingsPage() {
   return (
     <div className="page-stack">
       <Card>
-        <p className="eyebrow">Workspace owner</p>
-        <h2 className="section-title">{sessionQuery.data?.email ?? "FinFlow user"}</h2>
+        <p className="eyebrow">{intl.formatMessage({ id: "settings.ownerEyebrow" })}</p>
+        <h2 className="section-title">
+          {sessionQuery.data?.email ?? intl.formatMessage({ id: "auth.finflowUser" })}
+        </h2>
         <p className="muted-copy">
-          This PWA uses HttpOnly cookies for auth and keeps cached reads available offline.
+          {intl.formatMessage({ id: "settings.authCopy" })}
         </p>
       </Card>
 
@@ -29,8 +34,12 @@ export function SettingsPage() {
         <Card>
           <Link className="settings-link" to="/settings/accounts">
             <div>
-              <div className="settings-link__title">Accounts</div>
-              <div className="settings-link__copy">Manage account types, balances, and lifecycle.</div>
+              <div className="settings-link__title">
+                {intl.formatMessage({ id: "settings.accountsTitle" })}
+              </div>
+              <div className="settings-link__copy">
+                {intl.formatMessage({ id: "settings.accountsCopy" })}
+              </div>
             </div>
             <ChevronRight size={18} />
           </Link>
@@ -39,8 +48,12 @@ export function SettingsPage() {
         <Card>
           <Link className="settings-link" to="/settings/categories">
             <div>
-              <div className="settings-link__title">Categories</div>
-              <div className="settings-link__copy">Maintain your reporting and ingestion taxonomy.</div>
+              <div className="settings-link__title">
+                {intl.formatMessage({ id: "settings.categoriesTitle" })}
+              </div>
+              <div className="settings-link__copy">
+                {intl.formatMessage({ id: "settings.categoriesCopy" })}
+              </div>
             </div>
             <ChevronRight size={18} />
           </Link>
@@ -48,9 +61,24 @@ export function SettingsPage() {
       </div>
 
       <Card>
+        <div className="section-header">
+          <div>
+            <h3 className="section-title">{intl.formatMessage({ id: "settings.languageTitle" })}</h3>
+            <p className="muted-copy">{intl.formatMessage({ id: "settings.languageCopy" })}</p>
+          </div>
+        </div>
+        <label className="field">
+          <span>{intl.formatMessage({ id: "common.language" })}</span>
+          <LanguageSwitcher />
+        </label>
+      </Card>
+
+      <Card>
         <Button disabled={logoutMutation.isPending} type="button" variant="danger" onClick={() => void handleLogout()}>
           <LogOut size={16} />
-          {logoutMutation.isPending ? "Signing out..." : "Sign out"}
+          {logoutMutation.isPending
+            ? intl.formatMessage({ id: "common.signingOut" })
+            : intl.formatMessage({ id: "common.signOut" })}
         </Button>
       </Card>
     </div>

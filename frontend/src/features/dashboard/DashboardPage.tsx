@@ -12,6 +12,8 @@ import { generateDueProjections } from "@/shared/api/plans";
 import { listProjectedTransactions } from "@/shared/api/projections";
 import { getForecast, getLedgerReport } from "@/shared/api/reports";
 import { parseAndCreateTransaction } from "@/shared/api/transactions";
+import { useAppIntl } from "@/shared/lib/i18n";
+import { projectionStatusLabel, transactionTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/Button";
@@ -26,6 +28,7 @@ const captureSchema = z.object({
 type CaptureValues = z.infer<typeof captureSchema>;
 
 export function DashboardPage() {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
   const captureForm = useForm<CaptureValues>({
@@ -115,16 +118,14 @@ export function DashboardPage() {
       <section className="hero-panel">
         <div className="hero-copy">
           <p className="eyebrow">Installable finance cockpit</p>
-          <h2 className="hero-title">Keep facts, projections, and drift in one rhythm.</h2>
-          <p className="hero-subtitle">
-            Review forecast pressure, confirm projections, and capture fresh transactions
-            without leaving the app shell.
-          </p>
+          <p className="eyebrow">{intl.formatMessage({ id: "dashboard.eyebrow" })}</p>
+          <h2 className="hero-title">{intl.formatMessage({ id: "dashboard.title" })}</h2>
+          <p className="hero-subtitle">{intl.formatMessage({ id: "dashboard.subtitle" })}</p>
         </div>
 
         <div className="hero-actions">
           <Link className="button button--primary button-link" to="/transactions/new">
-            Add transaction
+            {intl.formatMessage({ id: "dashboard.addTransaction" })}
           </Link>
           <Button
             disabled={!isOnline || generateMutation.isPending}
@@ -132,7 +133,9 @@ export function DashboardPage() {
             variant="secondary"
             onClick={() => void generateMutation.mutateAsync()}
           >
-            {generateMutation.isPending ? "Generating..." : "Generate due projections"}
+            {generateMutation.isPending
+              ? intl.formatMessage({ id: "dashboard.generating" })
+              : intl.formatMessage({ id: "dashboard.generateDueProjections" })}
           </Button>
         </div>
       </section>
@@ -142,12 +145,15 @@ export function DashboardPage() {
           <div className="metric-icon">
             <Wallet size={20} />
           </div>
-          <div className="metric-label">Projected balance</div>
+          <div className="metric-label">{intl.formatMessage({ id: "common.projectedBalance" })}</div>
           <div className="metric-value">
             {formatCurrency(forecastQuery.data?.projected_balance)}
           </div>
           <div className="metric-meta">
-            Current {formatCurrency(forecastQuery.data?.current_balance)}
+            {intl.formatMessage(
+              { id: "dashboard.currentValue" },
+              { value: formatCurrency(forecastQuery.data?.current_balance) },
+            )}
           </div>
         </Card>
 
@@ -155,10 +161,13 @@ export function DashboardPage() {
           <div className="metric-icon">
             <CalendarClock size={20} />
           </div>
-          <div className="metric-label">Pending projections</div>
+          <div className="metric-label">{intl.formatMessage({ id: "dashboard.pendingProjections" })}</div>
           <div className="metric-value">{pendingCount}</div>
           <div className="metric-meta">
-            Through {formatShortDate(todayOffset(30))}
+            {intl.formatMessage(
+              { id: "dashboard.throughDate" },
+              { date: formatShortDate(todayOffset(30)) },
+            )}
           </div>
         </Card>
 
@@ -166,12 +175,15 @@ export function DashboardPage() {
           <div className="metric-icon">
             <Sparkles size={20} />
           </div>
-          <div className="metric-label">Projected income</div>
+          <div className="metric-label">{intl.formatMessage({ id: "common.projectedIncome" })}</div>
           <div className="metric-value">
             {formatCurrency(forecastQuery.data?.projected_income)}
           </div>
           <div className="metric-meta">
-            Expenses {formatCurrency(forecastQuery.data?.projected_expense)}
+            {intl.formatMessage(
+              { id: "dashboard.expensesValue" },
+              { value: formatCurrency(forecastQuery.data?.projected_expense) },
+            )}
           </div>
         </Card>
       </div>
@@ -180,22 +192,20 @@ export function DashboardPage() {
         <Card>
           <div className="section-header">
             <div>
-              <h3 className="section-title">Quick capture</h3>
-              <p className="muted-copy">
-                Use parse-and-create for quick mobile entry from natural language.
-              </p>
+              <h3 className="section-title">{intl.formatMessage({ id: "dashboard.quickCaptureTitle" })}</h3>
+              <p className="muted-copy">{intl.formatMessage({ id: "dashboard.quickCaptureCopy" })}</p>
             </div>
           </div>
 
           {!isOnline ? (
-            <div className="callout">Quick capture needs a live connection.</div>
+            <div className="callout">{intl.formatMessage({ id: "dashboard.quickCaptureOffline" })}</div>
           ) : null}
 
           <form className="form-stack" onSubmit={onCaptureSubmit}>
             <label className="field">
-              <span>Text</span>
+              <span>{intl.formatMessage({ id: "dashboard.text" })}</span>
               <textarea
-                placeholder="Coffee 4.50, salary 2400, groceries 82"
+                placeholder={intl.formatMessage({ id: "dashboard.quickCapturePlaceholder" })}
                 rows={3}
                 {...captureForm.register("text")}
               />
@@ -203,9 +213,9 @@ export function DashboardPage() {
 
             <div className="field-grid field-grid--two">
               <label className="field">
-                <span>Account</span>
+                <span>{intl.formatMessage({ id: "common.account" })}</span>
                 <select {...captureForm.register("account_id")}>
-                  <option value="">Choose account</option>
+                  <option value="">{intl.formatMessage({ id: "common.chooseAccount" })}</option>
                   {accountsQuery.data?.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name}
@@ -215,9 +225,9 @@ export function DashboardPage() {
               </label>
 
               <label className="field">
-                <span>Category</span>
+                <span>{intl.formatMessage({ id: "common.category" })}</span>
                 <select {...captureForm.register("category_id")}>
-                  <option value="">Auto or none</option>
+                  <option value="">{intl.formatMessage({ id: "common.autoOrNone" })}</option>
                   {categoriesQuery.data?.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -235,7 +245,9 @@ export function DashboardPage() {
               disabled={!isOnline || captureMutation.isPending || !accountsQuery.data?.length}
               type="submit"
             >
-              {captureMutation.isPending ? "Creating..." : "Parse and create"}
+              {captureMutation.isPending
+                ? intl.formatMessage({ id: "common.creating" })
+                : intl.formatMessage({ id: "dashboard.parseAndCreate" })}
             </Button>
           </form>
         </Card>
@@ -243,11 +255,11 @@ export function DashboardPage() {
         <Card>
           <div className="section-header">
             <div>
-              <h3 className="section-title">Recent cashflow</h3>
-              <p className="muted-copy">Latest rows from the unified ledger.</p>
+              <h3 className="section-title">{intl.formatMessage({ id: "dashboard.recentCashflowTitle" })}</h3>
+              <p className="muted-copy">{intl.formatMessage({ id: "dashboard.recentCashflowCopy" })}</p>
             </div>
             <Link className="inline-link" to="/reports">
-              Open reports <ArrowRight size={16} />
+              {intl.formatMessage({ id: "dashboard.openReports" })} <ArrowRight size={16} />
             </Link>
           </div>
 
@@ -256,19 +268,22 @@ export function DashboardPage() {
               recentRows.map((row) => (
                 <article className="ledger-row" key={row.row_id}>
                   <div>
-                    <div className="ledger-row__title">{row.description ?? "Untitled row"}</div>
+                    <div className="ledger-row__title">
+                      {row.description ?? intl.formatMessage({ id: "dashboard.untitledRow" })}
+                    </div>
                     <div className="ledger-row__meta">
-                      {row.row_type} · {formatShortDate(row.date)}
+                      {typeof row.type === "string" ? row.type : transactionTypeLabel(intl, row.type)} ·{" "}
+                      {formatShortDate(row.date)}
                     </div>
                   </div>
                   <div className="ledger-row__amount">
                     <strong>{formatCurrency(row.amount)}</strong>
-                    <span>{row.status}</span>
+                    <span>{projectionStatusLabel(intl, row.status as "pending" | "confirmed" | "skipped")}</span>
                   </div>
                 </article>
               ))
             ) : (
-              <div className="empty-state">No cashflow rows yet.</div>
+              <div className="empty-state">{intl.formatMessage({ id: "dashboard.noCashflow" })}</div>
             )}
           </div>
         </Card>

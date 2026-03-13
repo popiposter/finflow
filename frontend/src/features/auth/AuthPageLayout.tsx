@@ -1,16 +1,17 @@
 import { Outlet } from "react-router-dom";
 
+import { useAppIntl } from "@/shared/lib/i18n";
+
 export function AuthPageLayout() {
+  const intl = useAppIntl();
+
   return (
     <div className="auth-shell">
       <div className="auth-panel">
         <div>
-          <p className="eyebrow">FinFlow PWA</p>
-          <h1 className="auth-title">A cleaner way to see money, plans, and drift.</h1>
-          <p className="auth-copy">
-            Installable finance tracking with actual transactions, projected cashflow,
-            and recurring templates in one calm workspace.
-          </p>
+          <p className="eyebrow">{intl.formatMessage({ id: "auth.layoutEyebrow" })}</p>
+          <h1 className="auth-title">{intl.formatMessage({ id: "auth.layoutTitle" })}</h1>
+          <p className="auth-copy">{intl.formatMessage({ id: "auth.layoutCopy" })}</p>
         </div>
 
         <div className="auth-card">

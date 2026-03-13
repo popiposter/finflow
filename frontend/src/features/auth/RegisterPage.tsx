@@ -4,6 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useRegisterMutation } from "@/features/auth/session";
+import { useAppIntl } from "@/shared/lib/i18n";
 import { Button } from "@/shared/ui/Button";
 
 const schema = z.object({
@@ -14,6 +15,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export function RegisterPage() {
+  const intl = useAppIntl();
   const navigate = useNavigate();
   const registerMutation = useRegisterMutation();
   const { register, handleSubmit, formState } = useForm<FormValues>({
@@ -32,14 +34,12 @@ export function RegisterPage() {
   return (
     <form className="form-stack" onSubmit={onSubmit}>
       <div>
-        <h2 className="section-title">Create your workspace</h2>
-        <p className="muted-copy">
-          Start with secure cookie-based auth and install the app once you're in.
-        </p>
+        <h2 className="section-title">{intl.formatMessage({ id: "auth.registerTitle" })}</h2>
+        <p className="muted-copy">{intl.formatMessage({ id: "auth.registerCopy" })}</p>
       </div>
 
       <label className="field">
-        <span>Email</span>
+        <span>{intl.formatMessage({ id: "auth.email" })}</span>
         <input type="email" autoComplete="email" {...register("email")} />
         {formState.errors.email ? (
           <small className="field-error">{formState.errors.email.message}</small>
@@ -47,7 +47,7 @@ export function RegisterPage() {
       </label>
 
       <label className="field">
-        <span>Password</span>
+        <span>{intl.formatMessage({ id: "auth.password" })}</span>
         <input type="password" autoComplete="new-password" {...register("password")} />
         {formState.errors.password ? (
           <small className="field-error">{formState.errors.password.message}</small>
@@ -59,11 +59,14 @@ export function RegisterPage() {
       ) : null}
 
       <Button disabled={registerMutation.isPending} type="submit">
-        {registerMutation.isPending ? "Creating..." : "Create account"}
+        {registerMutation.isPending
+          ? intl.formatMessage({ id: "common.creating" })
+          : intl.formatMessage({ id: "auth.createAccount" })}
       </Button>
 
       <p className="muted-copy">
-        Already have access? <Link to="/login">Sign in</Link>
+        {intl.formatMessage({ id: "auth.alreadyHaveAccess" })}{" "}
+        <Link to="/login">{intl.formatMessage({ id: "auth.signIn" })}</Link>
       </p>
     </form>
   );

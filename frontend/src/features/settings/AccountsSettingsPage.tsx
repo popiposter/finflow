@@ -7,6 +7,8 @@ import { z } from "zod";
 
 import { createAccount, deleteAccount, listAccounts, updateAccount } from "@/shared/api/accounts";
 import type { Account, AccountType } from "@/shared/api/types";
+import { useAppIntl } from "@/shared/lib/i18n";
+import { accountTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { formatCurrency } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/Button";
@@ -35,6 +37,7 @@ const schema = z.object({
 type AccountFormValues = z.infer<typeof schema>;
 
 export function AccountsSettingsPage() {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -128,8 +131,8 @@ export function AccountsSettingsPage() {
     <div className="page-stack">
       <div className="split-header">
         <div>
-          <p className="eyebrow">Accounts</p>
-          <h2 className="section-title">Shape the containers your money moves through.</h2>
+          <p className="eyebrow">{intl.formatMessage({ id: "settings.accountsTitle" })}</p>
+          <h2 className="section-title">{intl.formatMessage({ id: "accounts.title" })}</h2>
         </div>
         <Button
           disabled={!isOnline}
@@ -140,7 +143,7 @@ export function AccountsSettingsPage() {
           }}
         >
           <Plus size={16} />
-          New account
+          {intl.formatMessage({ id: "accounts.new" })}
         </Button>
       </div>
 
@@ -152,7 +155,7 @@ export function AccountsSettingsPage() {
                 <div>
                   <div className="transaction-row__title">{account.name}</div>
                   <div className="transaction-row__meta">
-                    {account.type} · {account.currency_code}
+                    {accountTypeLabel(intl, account.type)} · {account.currency_code}
                   </div>
                 </div>
 
@@ -167,77 +170,81 @@ export function AccountsSettingsPage() {
                         setEditingAccount(account);
                         setIsDialogOpen(true);
                       }}
-                    >
-                      <Pencil size={14} />
-                      Edit
-                    </button>
+                      >
+                        <Pencil size={14} />
+                        {intl.formatMessage({ id: "common.edit" })}
+                      </button>
                     <button
                       className="inline-action inline-action--danger"
                       disabled={!isOnline || deleteMutation.isPending}
                       type="button"
-                      onClick={() => {
-                        if (window.confirm("Delete this account?")) {
-                          void deleteMutation.mutateAsync(account.id);
-                        }
-                      }}
-                    >
-                      <Trash2 size={14} />
-                      Delete
-                    </button>
+                        onClick={() => {
+                          if (window.confirm(intl.formatMessage({ id: "accounts.deleteConfirm" }))) {
+                            void deleteMutation.mutateAsync(account.id);
+                          }
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        {intl.formatMessage({ id: "common.delete" })}
+                      </button>
                   </div>
                 </div>
               </article>
             ))
-          ) : (
-            <div className="empty-state">No accounts yet.</div>
-          )}
-        </div>
+            ) : (
+              <div className="empty-state">{intl.formatMessage({ id: "accounts.empty" })}</div>
+            )}
+          </div>
       </Card>
 
       <DialogSheet
-        description="Accounts stay simple in v1 and drive transaction / plan ownership."
+        description={intl.formatMessage({ id: "accounts.dialogDescription" })}
         onOpenChange={setIsDialogOpen}
         open={isDialogOpen}
-        title={editingAccount ? "Edit account" : "New account"}
+        title={
+          editingAccount
+            ? intl.formatMessage({ id: "accounts.edit" })
+            : intl.formatMessage({ id: "accounts.newDialog" })
+        }
       >
         <form className="form-stack" onSubmit={onSubmit}>
           <label className="field">
-            <span>Name</span>
+            <span>{intl.formatMessage({ id: "common.name" })}</span>
             <input {...form.register("name")} />
           </label>
 
           <div className="field-grid field-grid--two">
             <label className="field">
-              <span>Type</span>
+              <span>{intl.formatMessage({ id: "common.type" })}</span>
               <select {...form.register("type")}>
                 {accountTypes.map((type) => (
                   <option key={type} value={type}>
-                    {type}
+                    {accountTypeLabel(intl, type)}
                   </option>
                 ))}
               </select>
             </label>
 
             <label className="field">
-              <span>Currency</span>
+              <span>{intl.formatMessage({ id: "common.currency" })}</span>
               <input {...form.register("currency_code")} />
             </label>
           </div>
 
           <div className="field-grid field-grid--two">
             <label className="field">
-              <span>Balance</span>
+              <span>{intl.formatMessage({ id: "common.balance" })}</span>
               <input inputMode="decimal" {...form.register("current_balance")} />
             </label>
 
             <label className="checkbox-field checkbox-field--inline">
               <input type="checkbox" {...form.register("is_active")} />
-              <span>Account is active</span>
+              <span>{intl.formatMessage({ id: "accounts.active" })}</span>
             </label>
           </div>
 
           <label className="field">
-            <span>Description</span>
+            <span>{intl.formatMessage({ id: "common.description" })}</span>
             <input {...form.register("description")} />
           </label>
 
@@ -250,11 +257,11 @@ export function AccountsSettingsPage() {
           <Button disabled={!isOnline || createMutation.isPending || updateMutation.isPending} type="submit">
             {editingAccount
               ? updateMutation.isPending
-                ? "Saving..."
-                : "Save account"
+                ? intl.formatMessage({ id: "common.saving" })
+                : intl.formatMessage({ id: "accounts.save" })
               : createMutation.isPending
-                ? "Creating..."
-                : "Create account"}
+                ? intl.formatMessage({ id: "common.creating" })
+                : intl.formatMessage({ id: "accounts.create" })}
           </Button>
         </form>
       </DialogSheet>

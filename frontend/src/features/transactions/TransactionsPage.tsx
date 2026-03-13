@@ -23,6 +23,8 @@ import {
   formatShortDate,
   toIsoDateTime,
 } from "@/shared/lib/utils";
+import { useAppIntl } from "@/shared/lib/i18n";
+import { transactionTypeLabel } from "@/shared/lib/labels";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { DialogSheet } from "@/shared/ui/DialogSheet";
@@ -61,6 +63,7 @@ type TransactionsPageProps = {
 };
 
 export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps) {
+  const intl = useAppIntl();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -254,8 +257,8 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
     <div className="page-stack">
       <div className="split-header">
         <div>
-          <p className="eyebrow">Actual transactions</p>
-          <h2 className="section-title">Track facts, then correct them with patch edits.</h2>
+          <p className="eyebrow">{intl.formatMessage({ id: "transactions.eyebrow" })}</p>
+          <h2 className="section-title">{intl.formatMessage({ id: "transactions.title" })}</h2>
         </div>
 
         <Button
@@ -267,7 +270,7 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
           }}
         >
           <Plus size={16} />
-          New transaction
+          {intl.formatMessage({ id: "transactions.new" })}
         </Button>
       </div>
 
@@ -275,32 +278,30 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
         <Card>
           <div className="section-header">
             <div>
-              <h3 className="section-title">Quick capture</h3>
-              <p className="muted-copy">
-                Parse free-form text into a stored transaction.
-              </p>
+              <h3 className="section-title">{intl.formatMessage({ id: "dashboard.quickCaptureTitle" })}</h3>
+              <p className="muted-copy">{intl.formatMessage({ id: "transactions.quickCaptureCopy" })}</p>
             </div>
             <span className="pill">
               <WandSparkles size={14} />
-              Parse and create
+              {intl.formatMessage({ id: "transactions.parsePill" })}
             </span>
           </div>
 
           <form className="form-stack" onSubmit={onCaptureSubmit}>
             <label className="field">
-              <span>Text</span>
+              <span>{intl.formatMessage({ id: "dashboard.text" })}</span>
               <textarea
                 rows={3}
-                placeholder="groceries 84.50, salary 2800, taxi home 19"
+                placeholder={intl.formatMessage({ id: "transactions.placeholder" })}
                 {...captureForm.register("text")}
               />
             </label>
 
             <div className="field-grid field-grid--two">
               <label className="field">
-                <span>Account</span>
+                <span>{intl.formatMessage({ id: "common.account" })}</span>
                 <select {...captureForm.register("account_id")}>
-                  <option value="">Choose account</option>
+                  <option value="">{intl.formatMessage({ id: "common.chooseAccount" })}</option>
                   {accountOptions.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name}
@@ -310,9 +311,9 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
               </label>
 
               <label className="field">
-                <span>Category</span>
+                <span>{intl.formatMessage({ id: "common.category" })}</span>
                 <select {...captureForm.register("category_id")}>
-                  <option value="">Auto or none</option>
+                  <option value="">{intl.formatMessage({ id: "common.autoOrNone" })}</option>
                   {categoryOptions.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -330,7 +331,9 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
               disabled={!isOnline || captureMutation.isPending || !accountOptions.length}
               type="submit"
             >
-              {captureMutation.isPending ? "Creating..." : "Parse transaction"}
+              {captureMutation.isPending
+                ? intl.formatMessage({ id: "common.creating" })
+                : intl.formatMessage({ id: "transactions.parse" })}
             </Button>
           </form>
         </Card>
@@ -338,8 +341,10 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
         <Card>
           <div className="section-header">
             <div>
-              <h3 className="section-title">Ledger of facts</h3>
-              <p className="muted-copy">{transactions.length} recorded transactions.</p>
+              <h3 className="section-title">{intl.formatMessage({ id: "transactions.ledgerTitle" })}</h3>
+              <p className="muted-copy">
+                {intl.formatMessage({ id: "transactions.recordedCount" }, { count: transactions.length })}
+              </p>
             </div>
           </div>
 
@@ -349,10 +354,10 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
                 <article className="transaction-row" key={transaction.id}>
                   <div>
                     <div className="transaction-row__title">
-                      {transaction.description ?? "Untitled transaction"}
+                      {transaction.description ?? intl.formatMessage({ id: "transactions.untitled" })}
                     </div>
                     <div className="transaction-row__meta">
-                      {transaction.type} · {formatShortDate(transaction.date_cash)}
+                      {transactionTypeLabel(intl, transaction.type)} · {formatShortDate(transaction.date_cash)}
                     </div>
                   </div>
 
@@ -369,27 +374,27 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
                         }}
                       >
                         <Pencil size={14} />
-                        Edit
+                        {intl.formatMessage({ id: "common.edit" })}
                       </button>
                       <button
                         className="inline-action inline-action--danger"
                         disabled={!isOnline || deleteMutation.isPending}
                         type="button"
                         onClick={() => {
-                          if (window.confirm("Delete this transaction?")) {
+                          if (window.confirm(intl.formatMessage({ id: "transactions.deleteConfirm" }))) {
                             void deleteMutation.mutateAsync(transaction.id);
                           }
                         }}
                       >
                         <Trash2 size={14} />
-                        Delete
+                        {intl.formatMessage({ id: "common.delete" })}
                       </button>
                     </div>
                   </div>
                 </article>
               ))
             ) : (
-              <div className="empty-state">No transactions yet. Create one to start the ledger.</div>
+              <div className="empty-state">{intl.formatMessage({ id: "transactions.empty" })}</div>
             )}
           </div>
         </Card>
@@ -398,25 +403,28 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
       <DialogSheet
         description={
           editingTransaction
-            ? "Patch the mutable fields of an existing actual transaction."
-            : "Create a new actual transaction."
+            ? intl.formatMessage({ id: "transactions.patchDescription" })
+            : intl.formatMessage({ id: "transactions.createDescription" })
         }
         onOpenChange={handleDialogChange}
         open={isDialogOpen}
-        title={editingTransaction ? "Edit transaction" : "New transaction"}
+        title={
+          editingTransaction
+            ? intl.formatMessage({ id: "transactions.edit" })
+            : intl.formatMessage({ id: "transactions.new" })
+        }
       >
         <form className="form-stack" onSubmit={onSubmit}>
           {editingTransaction ? (
             <div className="callout">
-              Account and type stay fixed after creation. Use patch fields below to correct
-              the fact.
+              {intl.formatMessage({ id: "transactions.patchCallout" })}
             </div>
           ) : (
             <div className="field-grid field-grid--two">
               <label className="field">
-                <span>Account</span>
+                <span>{intl.formatMessage({ id: "common.account" })}</span>
                 <select {...transactionForm.register("account_id")}>
-                  <option value="">Choose account</option>
+                  <option value="">{intl.formatMessage({ id: "common.chooseAccount" })}</option>
                   {accountOptions.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name}
@@ -426,11 +434,11 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
               </label>
 
               <label className="field">
-                <span>Type</span>
+                <span>{intl.formatMessage({ id: "common.type" })}</span>
                 <select {...transactionForm.register("type")}>
                   {transactionTypes.map((type) => (
                     <option key={type} value={type}>
-                      {type}
+                      {transactionTypeLabel(intl, type)}
                     </option>
                   ))}
                 </select>
@@ -440,14 +448,14 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
 
           <div className="field-grid field-grid--two">
             <label className="field">
-              <span>Amount</span>
+              <span>{intl.formatMessage({ id: "common.amount" })}</span>
               <input inputMode="decimal" placeholder="0.00" {...transactionForm.register("amount")} />
             </label>
 
             <label className="field">
-              <span>Category</span>
+              <span>{intl.formatMessage({ id: "common.category" })}</span>
               <select {...transactionForm.register("category_id")}>
-                <option value="">None</option>
+                <option value="">{intl.formatMessage({ id: "common.none" })}</option>
                 {categoryOptions.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -458,25 +466,28 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
           </div>
 
           <label className="field">
-            <span>Description</span>
-            <input placeholder="Monthly rent, salary, groceries..." {...transactionForm.register("description")} />
+            <span>{intl.formatMessage({ id: "common.description" })}</span>
+            <input
+              placeholder={intl.formatMessage({ id: "transactions.descriptionPlaceholder" })}
+              {...transactionForm.register("description")}
+            />
           </label>
 
           <div className="field-grid field-grid--two">
             <label className="field">
-              <span>Accrual date</span>
+              <span>{intl.formatMessage({ id: "transactions.accrualDate" })}</span>
               <input type="datetime-local" {...transactionForm.register("date_accrual")} />
             </label>
 
             <label className="field">
-              <span>Cash date</span>
+              <span>{intl.formatMessage({ id: "transactions.cashDate" })}</span>
               <input type="datetime-local" {...transactionForm.register("date_cash")} />
             </label>
           </div>
 
           <label className="checkbox-field">
             <input type="checkbox" {...transactionForm.register("is_reconciled")} />
-            <span>Mark as reconciled</span>
+            <span>{intl.formatMessage({ id: "transactions.reconciled" })}</span>
           </label>
 
           {createMutation.error || patchMutation.error ? (
@@ -491,11 +502,11 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
           >
             {editingTransaction
               ? patchMutation.isPending
-                ? "Saving..."
-                : "Save changes"
+                ? intl.formatMessage({ id: "common.saving" })
+                : intl.formatMessage({ id: "transactions.saveChanges" })
               : createMutation.isPending
-                ? "Creating..."
-                : "Create transaction"}
+                ? intl.formatMessage({ id: "common.creating" })
+                : intl.formatMessage({ id: "transactions.createAction" })}
           </Button>
         </form>
       </DialogSheet>

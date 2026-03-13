@@ -1,10 +1,12 @@
 import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { useAppIntl } from "@/shared/lib/i18n";
 import type { DeferredInstallPrompt } from "@/shared/lib/pwa";
 import { Button } from "@/shared/ui/Button";
 
 export function InstallPromptButton({ compact = false }: { compact?: boolean }) {
+  const intl = useAppIntl();
   const [promptEvent, setPromptEvent] = useState<DeferredInstallPrompt | null>(null);
 
   useEffect(() => {
@@ -37,7 +39,11 @@ export function InstallPromptButton({ compact = false }: { compact?: boolean }) 
       onClick={() => void handleInstall()}
     >
       <Download size={16} />
-      <span>{compact ? "Install" : "Install app"}</span>
+      <span>
+        {compact
+          ? intl.formatMessage({ id: "pwa.install" })
+          : intl.formatMessage({ id: "pwa.installApp" })}
+      </span>
     </Button>
   );
 }
