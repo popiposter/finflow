@@ -1,27 +1,42 @@
 # FinFlow
 
+[![CI](https://github.com/popiposter/finflow/actions/workflows/ci.yml/badge.svg)](https://github.com/popiposter/finflow/actions/workflows/ci.yml)
+![Backend](https://img.shields.io/badge/backend-FastAPI-1f6b57)
+![Frontend](https://img.shields.io/badge/frontend-React%20PWA-cb9b2f)
+![Database](https://img.shields.io/badge/database-PostgreSQL-244b7a)
+![TypeScript](https://img.shields.io/badge/types-typed-2c5f7a)
+
 FinFlow is a personal finance workspace built around one practical idea: keep actual transactions, future expectations, and cashflow reading in the same system.
 
-Today the repo contains:
+The repo already includes:
 - a FastAPI backend with recurring finance domain logic
 - a mobile-first React PWA frontend
 - a one-command Docker dev stack for local work
 
-## What FinFlow Does
+## Why It Exists
 
-FinFlow is designed around a projection-first lifecycle:
+Most finance apps split reality and planning into separate places. FinFlow treats them as one workflow:
+- record what already happened
+- model what is likely to happen next
+- confirm or skip projected rows
+- read cashflow across both layers
 
-`planned payment -> projected transaction -> actual transaction`
+That is why the product is built around a projection-first lifecycle instead of direct recurring transaction generation.
 
-That gives the product a cleaner model for:
-- recurring templates
-- pending forecasts before money actually moves
-- confirmation or skipping of projected rows
-- unified cashflow views over actual and projected data
+## Lifecycle
 
-## Current Product Scope
+```mermaid
+flowchart LR
+    A["Planned Payment Template"] --> B["Projected Transaction"]
+    B --> C["Confirm into Actual Transaction"]
+    B --> D["Skip Projection"]
+    C --> E["Ledger / Reports / Forecast"]
+    D --> E
+```
 
-The project already supports:
+## Current Scope
+
+FinFlow currently supports:
 - auth with browser session cookies and refresh flow
 - accounts, categories, and actual transaction CRUD
 - transaction patch editing
@@ -103,7 +118,7 @@ ruff format .
 - [docs/testing-architecture.md](docs/testing-architecture.md) — test and CI rules
 - [docs/spec/backend.md](docs/spec/backend.md) — backend behavior and API conventions
 
-## Developer Notes
+## Practical Notes
 
 - Backend and frontend are intended to run on the same origin in production-style setups.
 - Offline behavior is read-only by design for now; mutations are intentionally blocked without a connection.
@@ -112,7 +127,7 @@ ruff format .
 
 ## Status
 
-FinFlow is no longer just a backend skeleton. The current `main` branch already includes the core finance workflow end to end:
+FinFlow is no longer a backend skeleton. The current `main` branch already supports the full core loop:
 - enter or import actual transactions
 - define recurring templates
 - generate and manage projections
