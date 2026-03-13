@@ -24,7 +24,7 @@ Backend feature foundation is in place, and the frontend now has a mobile-first 
 - Frontend v1 foundation: `frontend/` React + TypeScript + Vite workspace with cookie-auth session bootstrap, guarded routes, typed API clients, TanStack Query caching, IndexedDB persistence, and PWA manifest/service worker registration.
 - Frontend product scope: login/register, dashboard, transactions, planned payments, projected transactions, cashflow/reporting views, and settings for accounts, categories, and profile/logout.
 - Frontend validation and CI: Vitest component tests, production build, and dedicated frontend GitHub Actions job.
-- Error handling hardening: normalized backend error envelopes, field-level validation mapping, localized frontend error rendering, and a root React error boundary.
+- Error handling hardening: normalized backend error envelopes, field-level validation mapping, localized frontend error rendering, localized client-side validation messages, and a root React error boundary.
 - Containerized local dev stack: root `compose.yml`, backend/frontend dev Dockerfiles, and helper scripts for one-command startup with isolated dependencies and live reload.
 - Compact repo docs and local developer scripts for repeatable validation.
 - CI infrastructure improvements: Python 3.12, uv-managed dependencies, aligned local and CI toolchains.

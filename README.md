@@ -21,7 +21,7 @@ FinFlow is an installable finance workspace under active product development, wi
 - Reporting Stage 1 plus unified cashflow ledger and forecast endpoints.
 - Finance CRUD Stage 4 for accounts, categories, and transactions, including partial editing for actual transactions.
 - Frontend v1: React + TypeScript + Vite PWA with cookie-auth session restore, offline persisted reads via TanStack Query + IndexedDB, and mobile-first screens for auth, dashboard, transactions, plans, projections, reports, and settings.
-- Unified API/frontend error handling: normalized backend error envelopes, localized client-side error interpretation, and a React error boundary fallback.
+- Unified API/frontend error handling: normalized backend error envelopes, localized client-side error interpretation, localized client-side validation messages, and a React error boundary fallback.
 
 ## Local developer workflow
 
