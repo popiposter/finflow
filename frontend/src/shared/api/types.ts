@@ -135,6 +135,7 @@ export type TransactionWorkbookImportInput = {
 
 export type TransactionImportError = {
   row_number: number;
+  code: string;
   message: string;
 };
 
@@ -281,8 +282,14 @@ export type CashflowReport = {
   grand_total: string;
 };
 
+export type ApiErrorDetail = {
+  code: string;
+  message: string;
+  fields?: Record<string, string>;
+};
+
 export type ApiErrorShape = {
+  error?: ApiErrorDetail | string;
   detail?: string;
   message?: string;
-  error?: string;
 };

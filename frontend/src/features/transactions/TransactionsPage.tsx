@@ -21,6 +21,8 @@ import type {
   TransactionType,
   TransactionWorkbookImportResponse,
 } from "@/shared/api/types";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
+import { formatImportRowError } from "@/shared/lib/api-errors";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import {
   formatCurrency,
@@ -336,7 +338,7 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
               <div className="muted-copy">{intl.formatMessage({ id: "transactions.importErrors" })}</div>
               {importSummary.errors.map((error) => (
                 <div key={`${error.row_number}-${error.message}`} className="callout">
-                  #{error.row_number}: {error.message}
+                  #{error.row_number}: {formatImportRowError(intl, error)}
                 </div>
               ))}
             </div>
@@ -394,7 +396,7 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
             </div>
 
             {captureMutation.error ? (
-              <div className="callout callout--danger">{captureMutation.error.message}</div>
+              <ApiErrorCallout error={captureMutation.error} />
             ) : null}
 
             <Button
@@ -561,9 +563,7 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
           </label>
 
           {createMutation.error || patchMutation.error ? (
-            <div className="callout callout--danger">
-              {createMutation.error?.message ?? patchMutation.error?.message}
-            </div>
+            <ApiErrorCallout error={createMutation.error ?? patchMutation.error} />
           ) : null}
 
           <Button
@@ -624,7 +624,7 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
           </label>
 
           {importMutation.error ? (
-            <div className="callout callout--danger">{importMutation.error.message}</div>
+            <ApiErrorCallout error={importMutation.error} />
           ) : null}
 
           <Button

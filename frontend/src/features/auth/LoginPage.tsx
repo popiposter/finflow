@@ -4,7 +4,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useLoginMutation } from "@/features/auth/session";
+import { applyApiFieldErrors } from "@/shared/lib/api-errors";
 import { useAppIntl } from "@/shared/lib/i18n";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { Button } from "@/shared/ui/Button";
 
 const schema = z.object({
@@ -19,7 +21,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const loginMutation = useLoginMutation();
-  const { register, handleSubmit, formState } = useForm<FormValues>({
+  const { register, handleSubmit, formState, setError } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       email: "",
@@ -28,9 +30,13 @@ export function LoginPage() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    await loginMutation.mutateAsync(values);
-    const next = (location.state as { from?: string } | null)?.from ?? "/";
-    navigate(next, { replace: true });
+    try {
+      await loginMutation.mutateAsync(values);
+      const next = (location.state as { from?: string } | null)?.from ?? "/";
+      navigate(next, { replace: true });
+    } catch (error) {
+      applyApiFieldErrors(error, setError, intl);
+    }
   });
 
   return (
@@ -57,7 +63,7 @@ export function LoginPage() {
       </label>
 
       {loginMutation.error ? (
-        <div className="callout callout--danger">{loginMutation.error.message}</div>
+        <ApiErrorCallout error={loginMutation.error} />
       ) : null}
 
       <Button disabled={loginMutation.isPending} type="submit">

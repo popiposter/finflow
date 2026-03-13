@@ -1,14 +1,17 @@
 import { BrowserRouter } from "react-router-dom";
 
+import { AppErrorBoundary } from "@/app/AppErrorBoundary";
 import { AppProviders } from "@/app/AppProviders";
 import { AppRouter } from "@/app/router";
 
 export function App() {
   return (
     <AppProviders>
-      <BrowserRouter>
-        <AppRouter />
-      </BrowserRouter>
+      <AppErrorBoundary>
+        <BrowserRouter>
+          <AppRouter />
+        </BrowserRouter>
+      </AppErrorBoundary>
     </AppProviders>
   );
 }

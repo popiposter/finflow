@@ -138,4 +138,27 @@ class TestTransactionImportEndpoint:
         )
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "Account not found"
+        assert response.json()["error"]["code"] == "account_not_found"
+
+    async def test_import_transactions_rejects_non_xlsx_file(
+        self,
+        async_client: AsyncClient,
+    ) -> None:
+        access_token = await _login_user(
+            async_client,
+            "xlsxinvalid@example.com",
+            "SecurePass123!",
+        )
+        account_id = await _create_account(async_client, access_token, "Import account")
+
+        response = await async_client.post(
+            "/api/v1/transactions/import",
+            headers={"Authorization": f"Bearer {access_token}"},
+            files={"file": ("transactions.csv", b"date,description,amount", "text/csv")},
+            data={"account_id": account_id},
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["error"]["code"] == "import_invalid_file"
+        assert data["error"]["message"] == "Only .xlsx files are supported"

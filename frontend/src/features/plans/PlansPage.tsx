@@ -16,6 +16,7 @@ import {
 } from "@/shared/api/plans";
 import type { PlannedPayment, Recurrence } from "@/shared/api/types";
 import { useAppIntl } from "@/shared/lib/i18n";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { recurrenceLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils";
@@ -333,9 +334,7 @@ export function PlansPage() {
           </label>
 
           {createMutation.error || updateMutation.error ? (
-            <div className="callout callout--danger">
-              {createMutation.error?.message ?? updateMutation.error?.message}
-            </div>
+            <ApiErrorCallout error={createMutation.error ?? updateMutation.error} />
           ) : null}
 
           <Button

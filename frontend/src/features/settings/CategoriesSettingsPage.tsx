@@ -8,6 +8,7 @@ import { z } from "zod";
 import { createCategory, deleteCategory, listCategories, updateCategory } from "@/shared/api/categories";
 import type { Category, CategoryType } from "@/shared/api/types";
 import { useAppIntl } from "@/shared/lib/i18n";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { categoryTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { Button } from "@/shared/ui/Button";
@@ -263,9 +264,7 @@ export function CategoriesSettingsPage() {
           </label>
 
           {createMutation.error || updateMutation.error ? (
-            <div className="callout callout--danger">
-              {createMutation.error?.message ?? updateMutation.error?.message}
-            </div>
+            <ApiErrorCallout error={createMutation.error ?? updateMutation.error} />
           ) : null}
 
           <Button disabled={!isOnline || createMutation.isPending || updateMutation.isPending} type="submit">

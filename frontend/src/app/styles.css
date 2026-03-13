@@ -684,6 +684,22 @@ svg {
     linear-gradient(180deg, #f3ead6, #f8f3e9);
 }
 
+.app-error-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.app-error-card {
+  width: min(100%, 560px);
+  padding: 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 251, 244, 0.92);
+  box-shadow: var(--shadow);
+}
+
 .auth-panel {
   display: grid;
   gap: 1rem;

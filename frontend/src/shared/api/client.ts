@@ -8,12 +8,22 @@ type RequestOptions = {
 
 export class ApiError extends Error {
   readonly status: number;
+  readonly code: string;
+  readonly fields: Record<string, string>;
   readonly payload: unknown;
 
-  constructor(status: number, payload: unknown, fallbackMessage: string) {
+  constructor(
+    status: number,
+    payload: unknown,
+    fallbackMessage: string,
+    code?: string,
+    fields?: Record<string, string>,
+  ) {
     const detail = resolveErrorMessage(payload) ?? fallbackMessage;
     super(detail);
     this.status = status;
+    this.code = code ?? resolveErrorCode(payload) ?? defaultErrorCode(status);
+    this.fields = fields ?? resolveErrorFields(payload);
     this.payload = payload;
   }
 }
@@ -27,11 +37,16 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { retryOnUnauthorized = true } = options;
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    credentials: "include",
-    headers: buildHeaders(init.headers, init.body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: buildHeaders(init.headers, init.body),
+    });
+  } catch (error) {
+    throw new ApiError(0, error, "Network request failed", "network_error");
+  }
 
   if (
     response.status === 401 &&
@@ -46,10 +61,13 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
+    const payload = await readBody(response);
     throw new ApiError(
       response.status,
-      await readBody(response),
+      payload,
       `${init.method ?? "GET"} ${path} failed`,
+      resolveErrorCode(payload) ?? defaultErrorCode(response.status),
+      resolveErrorFields(payload),
     );
   }
 
@@ -125,5 +143,68 @@ function resolveErrorMessage(payload: unknown) {
   }
 
   const maybeError = payload as ApiErrorShape;
-  return maybeError.detail ?? maybeError.message ?? maybeError.error ?? null;
+  if (maybeError.error && typeof maybeError.error === "object" && "message" in maybeError.error) {
+    return typeof maybeError.error.message === "string" ? maybeError.error.message : null;
+  }
+  return maybeError.detail ?? maybeError.message ?? (typeof maybeError.error === "string" ? maybeError.error : null);
+}
+
+function resolveErrorCode(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const maybeError = payload as ApiErrorShape;
+  if (maybeError.error && typeof maybeError.error === "object" && "code" in maybeError.error) {
+    return typeof maybeError.error.code === "string" ? maybeError.error.code : null;
+  }
+
+  return null;
+}
+
+function resolveErrorFields(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return {};
+  }
+
+  const maybeError = payload as ApiErrorShape;
+  if (maybeError.error && typeof maybeError.error === "object" && "fields" in maybeError.error) {
+    const fields = maybeError.error.fields;
+    if (fields && typeof fields === "object") {
+      return Object.fromEntries(
+        Object.entries(fields as Record<string, unknown>).map(([key, value]) => [key, String(value)]),
+      );
+    }
+  }
+
+  return {};
+}
+
+function defaultErrorCode(status: number) {
+  if (status === 0) {
+    return "network_error";
+  }
+  if (status === 401) {
+    return "authentication_required";
+  }
+  if (status === 403) {
+    return "permission_denied";
+  }
+  if (status === 404) {
+    return "not_found";
+  }
+  if (status === 409) {
+    return "conflict";
+  }
+  if (status === 422) {
+    return "validation_error";
+  }
+  if (status >= 500) {
+    return "internal_error";
+  }
+  return "request_failed";
+}
+
+export function isApiError(error: unknown): error is ApiError {
+  return error instanceof ApiError;
 }

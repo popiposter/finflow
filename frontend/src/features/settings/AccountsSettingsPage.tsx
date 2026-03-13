@@ -8,6 +8,7 @@ import { z } from "zod";
 import { createAccount, deleteAccount, listAccounts, updateAccount } from "@/shared/api/accounts";
 import type { Account, AccountType } from "@/shared/api/types";
 import { useAppIntl } from "@/shared/lib/i18n";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { accountTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { formatCurrency } from "@/shared/lib/utils";
@@ -249,9 +250,7 @@ export function AccountsSettingsPage() {
           </label>
 
           {createMutation.error || updateMutation.error ? (
-            <div className="callout callout--danger">
-              {createMutation.error?.message ?? updateMutation.error?.message}
-            </div>
+            <ApiErrorCallout error={createMutation.error ?? updateMutation.error} />
           ) : null}
 
           <Button disabled={!isOnline || createMutation.isPending || updateMutation.isPending} type="submit">

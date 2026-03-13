@@ -17,6 +17,11 @@ from app.main import app
 pytestmark = pytest.mark.api
 
 
+def _error_message(response: AsyncClient | object) -> str:
+    data = response.json()
+    return data["error"]["message"].lower()
+
+
 class TestRegisterEndpoint:
     """Tests for POST /api/v1/auth/register."""
 
@@ -47,7 +52,7 @@ class TestRegisterEndpoint:
         )
 
         assert response.status_code == 400
-        assert "already registered" in response.json()["detail"].lower()
+        assert "already registered" in _error_message(response)
 
     async def test_register_missing_email(self, async_client: AsyncClient) -> None:
         """Test registration without email."""
@@ -104,7 +109,7 @@ class TestLoginEndpoint:
         )
 
         assert response.status_code == 401
-        assert "invalid credentials" in response.json()["detail"].lower()
+        assert "invalid credentials" in _error_message(response)
 
     async def test_login_user_not_found(self, async_client: AsyncClient) -> None:
         """Test login with non-existent user."""
@@ -114,7 +119,7 @@ class TestLoginEndpoint:
         )
 
         assert response.status_code == 401
-        assert "invalid credentials" in response.json()["detail"].lower()
+        assert "invalid credentials" in _error_message(response)
 
 
 @pytest.mark.api
@@ -151,7 +156,7 @@ class TestRefreshEndpoint:
         response = await async_client.post("/api/v1/auth/refresh")
 
         assert response.status_code == 401
-        assert "not authenticated" in response.json()["detail"].lower()
+        assert "not authenticated" in _error_message(response)
 
     async def test_refresh_token_rotation(self, async_client: AsyncClient) -> None:
         """Test that old refresh token is invalidated after rotation."""
@@ -178,7 +183,7 @@ class TestRefreshEndpoint:
 
             response = await replay_client.post("/api/v1/auth/refresh")
             assert response.status_code == 401
-            assert "invalid refresh token" in response.json()["detail"].lower()
+            assert "invalid refresh token" in _error_message(response)
 
 
 @pytest.mark.api
@@ -213,7 +218,7 @@ class TestLogoutEndpoint:
 
             response = await replay_client.post("/api/v1/auth/refresh")
             assert response.status_code == 401
-            assert "invalid refresh token" in response.json()["detail"].lower()
+            assert "invalid refresh token" in _error_message(response)
 
 
 @pytest.mark.api
@@ -225,7 +230,7 @@ class TestMeEndpoint:
         response = await async_client.get("/api/v1/auth/me")
 
         assert response.status_code == 401
-        assert "not authenticated" in response.json()["detail"].lower()
+        assert "not authenticated" in _error_message(response)
 
     async def test_me_success(self, async_client: AsyncClient) -> None:
         """Test accessing /me with valid token."""
@@ -258,7 +263,7 @@ class TestMeEndpoint:
         )
 
         assert response.status_code == 401
-        assert "invalid access token" in response.json()["detail"].lower()
+        assert "invalid access token" in _error_message(response)
 
 
 @pytest.mark.api

@@ -14,6 +14,7 @@ import {
 } from "@/shared/api/projections";
 import type { ProjectedTransaction, ProjectedTransactionStatus } from "@/shared/api/types";
 import { useAppIntl } from "@/shared/lib/i18n";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { projectionStatusLabel, transactionTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils";
@@ -281,7 +282,7 @@ export function ProjectionsPage() {
           </label>
 
           {updateMutation.error ? (
-            <div className="callout callout--danger">{updateMutation.error.message}</div>
+            <ApiErrorCallout error={updateMutation.error} />
           ) : null}
 
           <Button disabled={!isOnline || updateMutation.isPending} type="submit">

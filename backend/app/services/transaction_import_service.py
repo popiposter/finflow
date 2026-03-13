@@ -6,13 +6,15 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
+from typing import cast
 from uuid import UUID
 
-from openpyxl import load_workbook
-from openpyxl.cell import Cell
-from openpyxl.utils.datetime import from_excel
+from openpyxl import load_workbook  # type: ignore[import-untyped]
+from openpyxl.cell import Cell  # type: ignore[import-untyped]
+from openpyxl.utils.datetime import from_excel  # type: ignore[import-untyped]
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.exceptions import AccountNotFoundError
 from app.models.types import TransactionType
 from app.repositories.account_repository import AccountRepository
 from app.repositories.transaction_repository import TransactionRepository
@@ -29,6 +31,17 @@ class ParsedImportRow:
     description: str
     date_accrual: datetime
     date_cash: datetime
+
+
+@dataclass
+class ImportRowParseError(ValueError):
+    """Structured per-row parsing error."""
+
+    code: str
+    message: str
+
+    def __str__(self) -> str:
+        return self.message
 
 
 class TransactionImportService:
@@ -53,7 +66,7 @@ class TransactionImportService:
 
         account = await self.account_repo.get_by_id(account_id)
         if account is None or account.user_id != user_id:
-            raise LookupError("Account not found")
+            raise AccountNotFoundError(str(account_id))
 
         workbook = load_workbook(BytesIO(workbook_bytes), data_only=True, read_only=True)
         worksheet = workbook.worksheets[0]
@@ -67,10 +80,11 @@ class TransactionImportService:
 
             try:
                 parsed_rows.append(self._parse_row(row_number=row_number, row=row, epoch=workbook.epoch))
-            except ValueError as exc:
+            except ImportRowParseError as exc:
                 errors.append(
                     TransactionImportError(
                         row_number=row_number,
+                        code=exc.code,
                         message=str(exc),
                     )
                 )
@@ -98,7 +112,10 @@ class TransactionImportService:
         epoch: object,
     ) -> ParsedImportRow:
         if len(row) < 3:
-            raise ValueError("Expected at least 3 columns: date, description, amount")
+            raise ImportRowParseError(
+                code="import_row_missing_columns",
+                message="Expected at least 3 columns: date, description, amount",
+            )
 
         date_value = self._parse_date_cell(row[0], epoch)
         description = self._parse_description_cell(row[1])
@@ -120,7 +137,7 @@ class TransactionImportService:
     def _parse_date_cell(self, cell: Cell, epoch: object) -> date | datetime:
         value = cell.value
         if value is None or value == "":
-            raise ValueError("Missing date")
+            raise ImportRowParseError(code="import_row_missing_date", message="Missing date")
 
         if isinstance(value, datetime):
             return value
@@ -129,7 +146,7 @@ class TransactionImportService:
             return value
 
         if isinstance(value, (int, float)):
-            return from_excel(value, epoch=epoch)
+            return cast(date | datetime, from_excel(value, epoch=epoch))
 
         if isinstance(value, str):
             cleaned = value.strip()
@@ -143,25 +160,37 @@ class TransactionImportService:
                     return datetime.strptime(cleaned, parser)
                 except ValueError:
                     continue
-            raise ValueError("Unsupported date format")
+            raise ImportRowParseError(
+                code="import_row_invalid_date",
+                message="Unsupported date format",
+            )
 
-        raise ValueError("Unsupported date value")
+        raise ImportRowParseError(
+            code="import_row_invalid_date",
+            message="Unsupported date value",
+        )
 
     def _parse_description_cell(self, cell: Cell) -> str:
         value = cell.value
         if value is None:
-            raise ValueError("Missing description")
+            raise ImportRowParseError(
+                code="import_row_missing_description",
+                message="Missing description",
+            )
 
         description = str(value).strip()
         if not description:
-            raise ValueError("Missing description")
+            raise ImportRowParseError(
+                code="import_row_missing_description",
+                message="Missing description",
+            )
 
         return description
 
     def _parse_amount_cell(self, cell: Cell) -> tuple[Decimal, TransactionType]:
         value = cell.value
         if value is None or value == "":
-            raise ValueError("Missing amount")
+            raise ImportRowParseError(code="import_row_missing_amount", message="Missing amount")
 
         if isinstance(value, (int, float, Decimal)):
             decimal_value = Decimal(str(value))
@@ -176,12 +205,21 @@ class TransactionImportService:
             try:
                 decimal_value = Decimal(normalized)
             except InvalidOperation as exc:
-                raise ValueError("Unsupported amount format") from exc
+                raise ImportRowParseError(
+                    code="import_row_invalid_amount",
+                    message="Unsupported amount format",
+                ) from exc
         else:
-            raise ValueError("Unsupported amount value")
+            raise ImportRowParseError(
+                code="import_row_invalid_amount",
+                message="Unsupported amount value",
+            )
 
         if decimal_value == 0:
-            raise ValueError("Amount cannot be zero")
+            raise ImportRowParseError(
+                code="import_row_zero_amount",
+                message="Amount cannot be zero",
+            )
 
         transaction_type = (
             TransactionType.INCOME if decimal_value > 0 else TransactionType.EXPENSE

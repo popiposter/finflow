@@ -4,7 +4,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useRegisterMutation } from "@/features/auth/session";
+import { applyApiFieldErrors } from "@/shared/lib/api-errors";
 import { useAppIntl } from "@/shared/lib/i18n";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { Button } from "@/shared/ui/Button";
 
 const schema = z.object({
@@ -18,7 +20,7 @@ export function RegisterPage() {
   const intl = useAppIntl();
   const navigate = useNavigate();
   const registerMutation = useRegisterMutation();
-  const { register, handleSubmit, formState } = useForm<FormValues>({
+  const { register, handleSubmit, formState, setError } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       email: "",
@@ -27,8 +29,12 @@ export function RegisterPage() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    await registerMutation.mutateAsync(values);
-    navigate("/", { replace: true });
+    try {
+      await registerMutation.mutateAsync(values);
+      navigate("/", { replace: true });
+    } catch (error) {
+      applyApiFieldErrors(error, setError, intl);
+    }
   });
 
   return (
@@ -55,7 +61,7 @@ export function RegisterPage() {
       </label>
 
       {registerMutation.error ? (
-        <div className="callout callout--danger">{registerMutation.error.message}</div>
+        <ApiErrorCallout error={registerMutation.error} />
       ) : null}
 
       <Button disabled={registerMutation.isPending} type="submit">

@@ -39,4 +39,32 @@ describe("apiFetch", () => {
       }),
     );
   });
+
+  it("normalizes structured API errors", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: "account_not_found",
+              message: "Account not found",
+              fields: { account_id: "Field required" },
+            },
+          }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      ),
+    );
+
+    await expect(apiFetch("/accounts")).rejects.toMatchObject({
+      status: 404,
+      code: "account_not_found",
+      fields: { account_id: "Field required" },
+      message: "Account not found",
+    });
+  });
 });

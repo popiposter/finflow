@@ -120,6 +120,7 @@ class TransactionImportError(BaseModel):
     """Per-row import error during bulk transaction ingestion."""
 
     row_number: int
+    code: str
     message: str
 
 

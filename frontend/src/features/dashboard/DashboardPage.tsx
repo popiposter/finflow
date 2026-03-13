@@ -13,6 +13,7 @@ import { listProjectedTransactions } from "@/shared/api/projections";
 import { getForecast, getLedgerReport } from "@/shared/api/reports";
 import { parseAndCreateTransaction } from "@/shared/api/transactions";
 import { useAppIntl } from "@/shared/lib/i18n";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { projectionStatusLabel, transactionTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils";
@@ -238,7 +239,7 @@ export function DashboardPage() {
             </div>
 
             {captureMutation.error ? (
-              <div className="callout callout--danger">{captureMutation.error.message}</div>
+              <ApiErrorCallout error={captureMutation.error} />
             ) : null}
 
             <Button
