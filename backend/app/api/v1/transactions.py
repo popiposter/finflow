@@ -3,7 +3,7 @@
 from typing import AsyncGenerator
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
 from app.api.dependencies.auth import get_current_user
 from app.exceptions import TransactionNotFoundError
@@ -11,13 +11,19 @@ from app.repositories.account_repository import AccountRepository
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.auth import UserOut
-from app.schemas.finance import TransactionCreate, TransactionOut, TransactionPatch
+from app.schemas.finance import (
+    TransactionCreate,
+    TransactionImportResponse,
+    TransactionOut,
+    TransactionPatch,
+)
 from app.schemas.parse_create import (
     ParseAndCreateResponse,
     ParseErrorResponse,
     ParseRequest,
 )
 from app.services.parse_create_service import TransactionParseCreateService
+from app.services.transaction_import_service import TransactionImportService
 from app.services.transaction_service import TransactionService
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
@@ -73,6 +79,21 @@ async def get_transaction_service(
     async with async_session_factory() as session:
         try:
             yield TransactionService(session)
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
+async def get_transaction_import_service(
+    user: UserOut = Depends(get_current_user),
+) -> AsyncGenerator[TransactionImportService, None]:
+    """Get transaction import service with database session."""
+    from app.db.session import async_session_factory
+
+    async with async_session_factory() as session:
+        try:
+            yield TransactionImportService(session)
             await session.commit()
         except Exception:
             await session.rollback()
@@ -246,6 +267,51 @@ async def create_transaction(
     )
 
     return TransactionOut.model_validate(transaction)
+
+
+@router.post(
+    "/import",
+    response_model=TransactionImportResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def import_transactions(
+    account_id: UUID = Form(...),
+    file: UploadFile = File(...),
+    current_user: UserOut = Depends(get_current_user),
+    service: TransactionImportService = Depends(get_transaction_import_service),
+) -> TransactionImportResponse:
+    """Import actual transactions from an XLSX workbook for a selected account."""
+    workbook_bytes = await file.read()
+    if not workbook_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is empty",
+        )
+
+    try:
+        imported_ids, errors = await service.import_workbook(
+            user_id=current_user.id,
+            account_id=account_id,
+            workbook_bytes=workbook_bytes,
+            filename=file.filename or "",
+        )
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return TransactionImportResponse(
+        imported_count=len(imported_ids),
+        imported_transaction_ids=imported_ids,
+        skipped_count=len(errors),
+        errors=errors,
+    )
 
 
 @router.get(

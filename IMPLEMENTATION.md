@@ -13,7 +13,7 @@ Backend feature foundation is in place, and the frontend now has a mobile-first 
 - PostgreSQL-backed tests and CI pipeline.
 - Authentication foundation: `User`, `ApiToken`, `RefreshSession`, auth service, auth routes, and tests.
 - Core finance domain: accounts, categories, transactions, repositories, schemas, and migrations.
-- Transaction ingestion from free-form text with authenticated parse-and-create flow, stronger parser heuristics for multiple numbers/type inference, and API persistence coverage.
+- Transaction ingestion from free-form text with authenticated parse-and-create flow, stronger parser heuristics for multiple numbers/type inference, API persistence coverage, and `.xlsx` bulk import into actual transactions for a chosen account.
 - Planned payments Stage 3: template-first model/CRUD semantics, projection-based lifecycle cleanup, and audit-only linkage from actual transactions.
 - Projected transactions Stage 1: model with status lifecycle, forecast layer between planned payments and transactions, and API endpoints for projection management.
 - Projection scheduler Stage 1: scheduled generation of pending projected transactions from planned-payment templates and scheduler health endpoint.

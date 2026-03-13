@@ -116,6 +116,22 @@ class TransactionOut(TransactionBase):
     model_config = {"from_attributes": True}
 
 
+class TransactionImportError(BaseModel):
+    """Per-row import error during bulk transaction ingestion."""
+
+    row_number: int
+    message: str
+
+
+class TransactionImportResponse(BaseModel):
+    """Summary for workbook-based transaction import."""
+
+    imported_count: int
+    imported_transaction_ids: list[UUID]
+    skipped_count: int = 0
+    errors: list[TransactionImportError] = Field(default_factory=list)
+
+
 class PlannedPaymentBase(BaseModel):
     """Base planned-payment template schema."""
 

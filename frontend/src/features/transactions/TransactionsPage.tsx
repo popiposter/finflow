@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2, WandSparkles } from "lucide-react";
+import { FileSpreadsheet, Pencil, Plus, Trash2, WandSparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -11,11 +11,16 @@ import { listCategories } from "@/shared/api/categories";
 import {
   createTransaction,
   deleteTransaction,
+  importTransactionsWorkbook,
   listTransactions,
   parseAndCreateTransaction,
   patchTransaction,
 } from "@/shared/api/transactions";
-import type { Transaction, TransactionType } from "@/shared/api/types";
+import type {
+  Transaction,
+  TransactionType,
+  TransactionWorkbookImportResponse,
+} from "@/shared/api/types";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import {
   formatCurrency,
@@ -70,6 +75,10 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
   const isOnline = useOnlineStatus();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(autoOpenNew);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importAccountId, setImportAccountId] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importSummary, setImportSummary] = useState<TransactionWorkbookImportResponse | null>(null);
 
   const accountsQuery = useQuery({
     queryKey: ["accounts"],
@@ -147,6 +156,12 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
   }, [accountsQuery.data, captureForm]);
 
   useEffect(() => {
+    if (!importAccountId && accountsQuery.data?.length) {
+      setImportAccountId(accountsQuery.data[0].id);
+    }
+  }, [accountsQuery.data, importAccountId]);
+
+  useEffect(() => {
     if (autoOpenNew) {
       setIsDialogOpen(true);
     }
@@ -197,6 +212,16 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
         account_id: accountOptions[0]?.id ?? "",
         category_id: "",
       });
+      await refreshWorkspace();
+    },
+  });
+
+  const importMutation = useMutation({
+    mutationFn: importTransactionsWorkbook,
+    onSuccess: async (result) => {
+      setImportSummary(result);
+      setIsImportDialogOpen(false);
+      setImportFile(null);
       await refreshWorkspace();
     },
   });
@@ -261,18 +286,63 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
           <h2 className="section-title">{intl.formatMessage({ id: "transactions.title" })}</h2>
         </div>
 
-        <Button
-          disabled={!isOnline || !accountOptions.length}
-          type="button"
-          onClick={() => {
-            setEditingTransaction(null);
-            setIsDialogOpen(true);
-          }}
-        >
-          <Plus size={16} />
-          {intl.formatMessage({ id: "transactions.new" })}
-        </Button>
+        <div className="action-group">
+          <Button
+            disabled={!isOnline || !accountOptions.length}
+            type="button"
+            variant="secondary"
+            onClick={() => setIsImportDialogOpen(true)}
+          >
+            <FileSpreadsheet size={16} />
+            {intl.formatMessage({ id: "transactions.import" })}
+          </Button>
+          <Button
+            disabled={!isOnline || !accountOptions.length}
+            type="button"
+            onClick={() => {
+              setEditingTransaction(null);
+              setIsDialogOpen(true);
+            }}
+          >
+            <Plus size={16} />
+            {intl.formatMessage({ id: "transactions.new" })}
+          </Button>
+        </div>
       </div>
+
+      {importSummary ? (
+        <Card>
+          <div className="section-header">
+            <div>
+              <h3 className="section-title">{intl.formatMessage({ id: "transactions.importTitle" })}</h3>
+              <p className="muted-copy">
+                {importSummary.skipped_count
+                  ? intl.formatMessage(
+                      { id: "transactions.importWithSkipped" },
+                      {
+                        count: importSummary.imported_count,
+                        skipped: importSummary.skipped_count,
+                      },
+                    )
+                  : intl.formatMessage(
+                      { id: "transactions.importSummary" },
+                      { count: importSummary.imported_count },
+                    )}
+              </p>
+            </div>
+          </div>
+          {importSummary.errors.length ? (
+            <div className="list-stack">
+              <div className="muted-copy">{intl.formatMessage({ id: "transactions.importErrors" })}</div>
+              {importSummary.errors.map((error) => (
+                <div key={`${error.row_number}-${error.message}`} className="callout">
+                  #{error.row_number}: {error.message}
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
 
       <div className="content-grid">
         <Card>
@@ -507,6 +577,63 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
               : createMutation.isPending
                 ? intl.formatMessage({ id: "common.creating" })
                 : intl.formatMessage({ id: "transactions.createAction" })}
+          </Button>
+        </form>
+      </DialogSheet>
+
+      <DialogSheet
+        description={intl.formatMessage({ id: "transactions.importDescription" })}
+        onOpenChange={setIsImportDialogOpen}
+        open={isImportDialogOpen}
+        title={intl.formatMessage({ id: "transactions.importTitle" })}
+      >
+        <form
+          className="form-stack"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!importFile || !importAccountId) {
+              return;
+            }
+            void importMutation.mutateAsync({
+              account_id: importAccountId,
+              file: importFile,
+            });
+          }}
+        >
+          <div className="callout">{intl.formatMessage({ id: "transactions.importHint" })}</div>
+
+          <label className="field">
+            <span>{intl.formatMessage({ id: "common.account" })}</span>
+            <select value={importAccountId} onChange={(event) => setImportAccountId(event.target.value)}>
+              <option value="">{intl.formatMessage({ id: "common.chooseAccount" })}</option>
+              {accountOptions.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>{intl.formatMessage({ id: "transactions.importFile" })}</span>
+            <input
+              accept=".xlsx"
+              type="file"
+              onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+
+          {importMutation.error ? (
+            <div className="callout callout--danger">{importMutation.error.message}</div>
+          ) : null}
+
+          <Button
+            disabled={!isOnline || importMutation.isPending || !importAccountId || !importFile}
+            type="submit"
+          >
+            {importMutation.isPending
+              ? intl.formatMessage({ id: "transactions.importing" })
+              : intl.formatMessage({ id: "transactions.importAction" })}
           </Button>
         </form>
       </DialogSheet>

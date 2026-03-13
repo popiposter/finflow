@@ -1,4 +1,5 @@
 import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TransactionsPage } from "@/features/transactions/TransactionsPage";
@@ -41,6 +42,7 @@ const createTransaction = vi.fn();
 const patchTransaction = vi.fn();
 const deleteTransaction = vi.fn();
 const parseAndCreateTransaction = vi.fn();
+const importTransactionsWorkbook = vi.fn();
 
 vi.mock("@/shared/lib/offline", () => ({
   useOnlineStatus: () => isOnline,
@@ -61,6 +63,7 @@ vi.mock("@/shared/api/transactions", () => ({
     patchTransaction(transactionId, payload),
   deleteTransaction: (transactionId: string) => deleteTransaction(transactionId),
   parseAndCreateTransaction: (payload: unknown) => parseAndCreateTransaction(payload),
+  importTransactionsWorkbook: (payload: unknown) => importTransactionsWorkbook(payload),
 }));
 
 describe("TransactionsPage", () => {
@@ -73,6 +76,12 @@ describe("TransactionsPage", () => {
     patchTransaction.mockResolvedValue({ id: "txn-1" });
     deleteTransaction.mockResolvedValue(undefined);
     parseAndCreateTransaction.mockResolvedValue({ id: "txn-2" });
+    importTransactionsWorkbook.mockResolvedValue({
+      imported_count: 1,
+      imported_transaction_ids: ["txn-3"],
+      skipped_count: 0,
+      errors: [],
+    });
     vi.clearAllMocks();
   });
 
@@ -97,5 +106,33 @@ describe("TransactionsPage", () => {
     });
 
     expect(screen.getByRole("button", { name: /parse transaction/i })).toBeEnabled();
+  });
+
+  it("uploads a workbook for the selected account", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TransactionsPage />);
+
+    await waitFor(() => expect(listAccounts).toHaveBeenCalled());
+
+    await user.click(screen.getByRole("button", { name: /import xlsx/i }));
+
+    const file = new File(["mock workbook"], "transactions.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    await user.upload(screen.getByLabelText(/workbook file/i), file);
+    await user.click(screen.getByRole("button", { name: /import transactions/i }));
+
+    await waitFor(() =>
+      expect(importTransactionsWorkbook).toHaveBeenCalledWith({
+        account_id: "acc-1",
+        file,
+      }),
+    );
+
+    expect(
+      await screen.findByText(/1 transactions imported\./i),
+    ).toBeInTheDocument();
   });
 });

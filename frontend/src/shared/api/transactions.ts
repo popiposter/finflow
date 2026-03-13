@@ -3,6 +3,8 @@ import type {
   ParseCreateInput,
   Transaction,
   TransactionInput,
+  TransactionWorkbookImportInput,
+  TransactionWorkbookImportResponse,
   TransactionPatchInput,
   UUID,
 } from "@/shared/api/types";
@@ -35,5 +37,16 @@ export function parseAndCreateTransaction(payload: ParseCreateInput) {
   return apiFetch<Transaction>("/transactions/parse-and-create", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function importTransactionsWorkbook(payload: TransactionWorkbookImportInput) {
+  const formData = new FormData();
+  formData.set("account_id", payload.account_id);
+  formData.set("file", payload.file);
+
+  return apiFetch<TransactionWorkbookImportResponse>("/transactions/import", {
+    method: "POST",
+    body: formData,
   });
 }

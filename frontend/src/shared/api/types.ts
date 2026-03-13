@@ -128,6 +128,23 @@ export type TransactionPatchInput = Partial<
   >
 >;
 
+export type TransactionWorkbookImportInput = {
+  account_id: UUID;
+  file: File;
+};
+
+export type TransactionImportError = {
+  row_number: number;
+  message: string;
+};
+
+export type TransactionWorkbookImportResponse = {
+  imported_count: number;
+  imported_transaction_ids: UUID[];
+  skipped_count: number;
+  errors: TransactionImportError[];
+};
+
 export type ParseCreateInput = {
   text: string;
   account_id: UUID;
