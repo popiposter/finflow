@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -43,6 +43,24 @@ const patchTransaction = vi.fn();
 const deleteTransaction = vi.fn();
 const parseAndCreateTransaction = vi.fn();
 const importTransactionsWorkbook = vi.fn();
+
+const sampleTransaction = {
+  id: "txn-1",
+  user_id: "user-1",
+  account_id: "acc-1",
+  category_id: "cat-1",
+  counterparty_account_id: null,
+  amount: "84.50",
+  type: "expense" as const,
+  description: "Groceries",
+  date_accrual: "2026-03-01T00:00:00Z",
+  date_cash: "2026-03-01T00:00:00Z",
+  is_reconciled: false,
+  planned_payment_id: null,
+  projected_transaction_id: null,
+  created_at: "",
+  updated_at: "",
+};
 
 vi.mock("@/shared/lib/offline", () => ({
   useOnlineStatus: () => isOnline,
@@ -102,10 +120,73 @@ describe("TransactionsPage", () => {
     await waitFor(() => expect(listAccounts).toHaveBeenCalled());
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/^Account$/i)).toHaveValue("acc-1");
+      expect(screen.getAllByLabelText(/^Account$/i)[0]).toHaveValue("acc-1");
     });
 
     expect(screen.getByRole("button", { name: /parse transaction/i })).toBeEnabled();
+  });
+
+  it("filters desktop table by search text", async () => {
+    const user = userEvent.setup();
+
+    listTransactions.mockResolvedValue([
+      sampleTransaction,
+      {
+        ...sampleTransaction,
+        id: "txn-2",
+        category_id: null,
+        amount: "2800.00",
+        type: "income",
+        description: "Salary",
+        date_cash: "2026-03-03T00:00:00Z",
+      },
+    ]);
+
+    renderWithProviders(<TransactionsPage />);
+
+    await waitFor(() => expect(listTransactions).toHaveBeenCalled());
+
+    expect(await screen.findByText(/2 recorded transactions\./i)).toBeInTheDocument();
+    const table = screen.getByRole("table");
+    expect(within(table).getAllByText("Groceries").length).toBeGreaterThan(0);
+    expect(within(table).getByText("Salary")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/^Search$/i), "Salary");
+
+    await waitFor(() => {
+      expect(within(table).queryByText("Groceries")).not.toBeInTheDocument();
+      expect(within(table).getByText("Salary")).toBeInTheDocument();
+    });
+  });
+
+  it("hydrates table filters from URL query params", async () => {
+    listTransactions.mockResolvedValue([
+      sampleTransaction,
+      {
+        ...sampleTransaction,
+        id: "txn-2",
+        category_id: null,
+        amount: "2800.00",
+        type: "income",
+        description: "Salary",
+        date_cash: "2026-03-03T00:00:00Z",
+      },
+    ]);
+
+    renderWithProviders(<TransactionsPage />, {
+      route: "/transactions?q=Salary&type=income&sort=amount:asc",
+    });
+
+    await waitFor(() => expect(listTransactions).toHaveBeenCalled());
+
+    expect(screen.getByLabelText(/^Search$/i)).toHaveValue("Salary");
+    expect(screen.getByLabelText(/^Type$/i)).toHaveValue("income");
+
+    const table = screen.getByRole("table");
+    await waitFor(() => {
+      expect(within(table).queryByText("Groceries")).not.toBeInTheDocument();
+      expect(within(table).getAllByText("Salary").length).toBeGreaterThan(0);
+    });
   });
 
   it("uploads a workbook for the selected account", async () => {

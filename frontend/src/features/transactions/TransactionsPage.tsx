@@ -1,9 +1,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  type ColumnDef,
+  getCoreRowModel,
+  getSortedRowModel,
+  type SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileSpreadsheet, Pencil, Plus, Trash2, WandSparkles } from "lucide-react";
+import { FileSpreadsheet, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
 import { listAccounts } from "@/shared/api/accounts";
@@ -35,7 +42,14 @@ import { useAppIntl } from "@/shared/lib/i18n";
 import { transactionTypeLabel } from "@/shared/lib/labels";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
+import { DataTable } from "@/shared/ui/DataTable";
 import { DialogSheet } from "@/shared/ui/DialogSheet";
+import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
+import { TransactionsTableToolbar } from "@/features/transactions/TransactionsTableToolbar";
+import {
+  TransactionsQuickCaptureCard,
+  type CaptureValues,
+} from "@/features/transactions/TransactionsQuickCaptureCard";
 
 const transactionTypes = [
   "expense",
@@ -56,20 +70,31 @@ type TransactionFormValues = {
   date_cash: string;
   is_reconciled: boolean;
 };
-type CaptureValues = {
-  text: string;
-  account_id: string;
-  category_id?: string;
-};
 
 type TransactionsPageProps = {
   autoOpenNew?: boolean;
+};
+
+type ReconciledFilter = "all" | "yes" | "no";
+
+type TransactionTableRow = {
+  id: string;
+  type: TransactionType;
+  typeLabel: string;
+  description: string;
+  amount: string;
+  dateCash: string;
+  dateCashLabel: string;
+  accountLabel: string;
+  categoryLabel: string;
+  isReconciled: boolean;
 };
 
 export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps) {
   const intl = useAppIntl();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
   const validation = getValidationMessages(intl);
@@ -102,6 +127,45 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
   const [importAccountId, setImportAccountId] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importSummary, setImportSummary] = useState<TransactionWorkbookImportResponse | null>(null);
+  const [globalSearch, setGlobalSearch] = useState(() => searchParams.get("q") ?? "");
+  const [typeFilter, setTypeFilter] = useState<"all" | TransactionType>(() => {
+    const value = searchParams.get("type");
+    return value && transactionTypes.includes(value as TransactionType)
+      ? (value as TransactionType)
+      : "all";
+  });
+  const [accountFilter, setAccountFilter] = useState(() => searchParams.get("account") ?? "all");
+  const [categoryFilter, setCategoryFilter] = useState(() => searchParams.get("category") ?? "all");
+  const [reconciledFilter, setReconciledFilter] = useState<ReconciledFilter>(() => {
+    const value = searchParams.get("rec");
+    return value === "yes" || value === "no" ? value : "all";
+  });
+  const [dateFrom, setDateFrom] = useState(() => searchParams.get("from") ?? "");
+  const [dateTo, setDateTo] = useState(() => searchParams.get("to") ?? "");
+  const [sorting, setSorting] = useState<SortingState>(() => {
+    const sortParam = searchParams.get("sort");
+    if (!sortParam) {
+      return [{ id: "dateCash", desc: true }];
+    }
+
+    const [id, direction] = sortParam.split(":");
+    const allowedIds = new Set([
+      "dateCash",
+      "typeLabel",
+      "description",
+      "accountLabel",
+      "categoryLabel",
+      "amount",
+      "isReconciled",
+    ]);
+
+    if (!allowedIds.has(id)) {
+      return [{ id: "dateCash", desc: true }];
+    }
+
+    return [{ id, desc: direction !== "asc" }];
+  });
+  const debouncedSearch = useDebouncedValue(globalSearch, 250);
 
   const accountsQuery = useQuery({
     queryKey: ["accounts"],
@@ -301,6 +365,252 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
     [transactionsQuery.data],
   );
 
+  const accountById = useMemo(
+    () => new Map(accountOptions.map((account) => [account.id, account.name])),
+    [accountOptions],
+  );
+
+  const categoryById = useMemo(
+    () => new Map(categoryOptions.map((category) => [category.id, category.name])),
+    [categoryOptions],
+  );
+
+  const tableRows = useMemo<TransactionTableRow[]>(
+    () =>
+      transactions.map((transaction) => ({
+        id: transaction.id,
+        type: transaction.type,
+        typeLabel: transactionTypeLabel(intl, transaction.type),
+        description: transaction.description ?? intl.formatMessage({ id: "transactions.untitled" }),
+        amount: transaction.amount,
+        dateCash: transaction.date_cash,
+        dateCashLabel: formatShortDate(transaction.date_cash),
+        accountLabel:
+          accountById.get(transaction.account_id) ?? intl.formatMessage({ id: "common.na" }),
+        categoryLabel: transaction.category_id
+          ? categoryById.get(transaction.category_id) ?? intl.formatMessage({ id: "common.na" })
+          : intl.formatMessage({ id: "common.none" }),
+        isReconciled: transaction.is_reconciled,
+      })),
+    [transactions, intl, accountById, categoryById],
+  );
+
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = debouncedSearch.trim().toLowerCase();
+
+    return tableRows.filter((row) => {
+      if (typeFilter !== "all" && row.type !== typeFilter) {
+        return false;
+      }
+
+      if (accountFilter !== "all" && row.accountLabel !== accountFilter) {
+        return false;
+      }
+
+      if (categoryFilter !== "all" && row.categoryLabel !== categoryFilter) {
+        return false;
+      }
+
+      if (reconciledFilter === "yes" && !row.isReconciled) {
+        return false;
+      }
+
+      if (reconciledFilter === "no" && row.isReconciled) {
+        return false;
+      }
+
+      if (dateFrom && row.dateCash.slice(0, 10) < dateFrom) {
+        return false;
+      }
+
+      if (dateTo && row.dateCash.slice(0, 10) > dateTo) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      return [
+        row.description,
+        row.typeLabel,
+        row.accountLabel,
+        row.categoryLabel,
+        row.amount,
+        row.dateCashLabel,
+      ].some((value) => value.toLowerCase().includes(normalizedSearch));
+    });
+  }, [tableRows, debouncedSearch, typeFilter, accountFilter, categoryFilter, reconciledFilter, dateFrom, dateTo]);
+
+  const tableColumns = useMemo<ColumnDef<TransactionTableRow>[]>(
+    () => [
+      {
+        accessorKey: "dateCash",
+        header: intl.formatMessage({ id: "transactions.table.cashDate" }),
+        cell: ({ row }) => row.original.dateCashLabel,
+      },
+      {
+        accessorKey: "typeLabel",
+        header: intl.formatMessage({ id: "common.type" }),
+      },
+      {
+        accessorKey: "description",
+        header: intl.formatMessage({ id: "common.description" }),
+      },
+      {
+        accessorKey: "accountLabel",
+        header: intl.formatMessage({ id: "common.account" }),
+      },
+      {
+        accessorKey: "categoryLabel",
+        header: intl.formatMessage({ id: "common.category" }),
+      },
+      {
+        accessorKey: "amount",
+        header: intl.formatMessage({ id: "common.amount" }),
+        cell: ({ row }) => (
+          <span className="table-number">{formatCurrency(row.original.amount)}</span>
+        ),
+      },
+      {
+        accessorKey: "isReconciled",
+        header: intl.formatMessage({ id: "transactions.reconciled" }),
+        cell: ({ row }) =>
+          row.original.isReconciled
+            ? intl.formatMessage({ id: "transactions.table.reconciledYes" })
+            : intl.formatMessage({ id: "transactions.table.reconciledNo" }),
+      },
+      {
+        id: "actions",
+        enableSorting: false,
+        header: intl.formatMessage({ id: "transactions.table.actions" }),
+        cell: ({ row }) => {
+          const transaction = transactions.find((item) => item.id === row.original.id);
+
+          if (!transaction) {
+            return null;
+          }
+
+          return (
+            <div className="table-actions">
+              <button
+                className="inline-action"
+                disabled={!isOnline}
+                type="button"
+                onClick={() => {
+                  setEditingTransaction(transaction);
+                  setIsDialogOpen(true);
+                }}
+              >
+                <Pencil size={14} />
+                {intl.formatMessage({ id: "common.edit" })}
+              </button>
+              <button
+                className="inline-action inline-action--danger"
+                disabled={!isOnline || deleteMutation.isPending}
+                type="button"
+                onClick={() => {
+                  if (window.confirm(intl.formatMessage({ id: "transactions.deleteConfirm" }))) {
+                    void deleteMutation.mutateAsync(transaction.id);
+                  }
+                }}
+              >
+                <Trash2 size={14} />
+                {intl.formatMessage({ id: "common.delete" })}
+              </button>
+            </div>
+          );
+        },
+      },
+    ],
+    [intl, transactions, isOnline, deleteMutation],
+  );
+
+  const table = useReactTable({
+    data: filteredRows,
+    columns: tableColumns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  const accountFilterOptions = useMemo(
+    () => ["all", ...Array.from(new Set(tableRows.map((row) => row.accountLabel)))],
+    [tableRows],
+  );
+
+  const categoryFilterOptions = useMemo(
+    () => ["all", ...Array.from(new Set(tableRows.map((row) => row.categoryLabel)))],
+    [tableRows],
+  );
+
+  const transactionTypeOptions = useMemo(
+    () =>
+      transactionTypes.map((type) => ({
+        value: type,
+        label: transactionTypeLabel(intl, type),
+      })),
+    [intl],
+  );
+
+  const clearFilters = () => {
+    setGlobalSearch("");
+    setTypeFilter("all");
+    setAccountFilter("all");
+    setCategoryFilter("all");
+    setReconciledFilter("all");
+    setDateFrom("");
+    setDateTo("");
+    setSorting([{ id: "dateCash", desc: true }]);
+  };
+
+  useEffect(() => {
+    const next = new URLSearchParams();
+
+    if (globalSearch.trim()) {
+      next.set("q", globalSearch.trim());
+    }
+    if (typeFilter !== "all") {
+      next.set("type", typeFilter);
+    }
+    if (accountFilter !== "all") {
+      next.set("account", accountFilter);
+    }
+    if (categoryFilter !== "all") {
+      next.set("category", categoryFilter);
+    }
+    if (reconciledFilter !== "all") {
+      next.set("rec", reconciledFilter);
+    }
+    if (dateFrom) {
+      next.set("from", dateFrom);
+    }
+    if (dateTo) {
+      next.set("to", dateTo);
+    }
+
+    const primarySort = sorting[0];
+    if (primarySort) {
+      next.set("sort", `${String(primarySort.id)}:${primarySort.desc ? "desc" : "asc"}`);
+    }
+
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [
+    accountFilter,
+    categoryFilter,
+    dateFrom,
+    dateTo,
+    globalSearch,
+    reconciledFilter,
+    searchParams,
+    setSearchParams,
+    sorting,
+    typeFilter,
+  ]);
+
   return (
     <div className="page-stack">
       <div className="split-header">
@@ -368,78 +678,15 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
       ) : null}
 
       <div className="content-grid">
-        <Card>
-          <div className="section-header">
-            <div>
-              <h3 className="section-title">{intl.formatMessage({ id: "dashboard.quickCaptureTitle" })}</h3>
-              <p className="muted-copy">{intl.formatMessage({ id: "transactions.quickCaptureCopy" })}</p>
-            </div>
-            <span className="pill">
-              <WandSparkles size={14} />
-              {intl.formatMessage({ id: "transactions.parsePill" })}
-            </span>
-          </div>
-
-          <form className="form-stack" onSubmit={onCaptureSubmit}>
-            <label className="field">
-              <span>{intl.formatMessage({ id: "dashboard.text" })}</span>
-              <textarea
-                rows={3}
-                placeholder={intl.formatMessage({ id: "transactions.placeholder" })}
-                {...captureForm.register("text")}
-              />
-              {getFieldErrorMessage(captureForm.formState.errors.text) ? (
-                <small className="field-error">
-                  {getFieldErrorMessage(captureForm.formState.errors.text)}
-                </small>
-              ) : null}
-            </label>
-
-            <div className="field-grid field-grid--two">
-              <label className="field">
-                <span>{intl.formatMessage({ id: "common.account" })}</span>
-                <select {...captureForm.register("account_id")}>
-                  <option value="">{intl.formatMessage({ id: "common.chooseAccount" })}</option>
-                  {accountOptions.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                    </option>
-                  ))}
-                </select>
-                {getFieldErrorMessage(captureForm.formState.errors.account_id) ? (
-                  <small className="field-error">
-                    {getFieldErrorMessage(captureForm.formState.errors.account_id)}
-                  </small>
-                ) : null}
-              </label>
-
-              <label className="field">
-                <span>{intl.formatMessage({ id: "common.category" })}</span>
-                <select {...captureForm.register("category_id")}>
-                  <option value="">{intl.formatMessage({ id: "common.autoOrNone" })}</option>
-                  {categoryOptions.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            {captureMutation.error ? (
-              <ApiErrorCallout error={captureMutation.error} />
-            ) : null}
-
-            <Button
-              disabled={!isOnline || captureMutation.isPending || !accountOptions.length}
-              type="submit"
-            >
-              {captureMutation.isPending
-                ? intl.formatMessage({ id: "common.creating" })
-                : intl.formatMessage({ id: "transactions.parse" })}
-            </Button>
-          </form>
-        </Card>
+        <TransactionsQuickCaptureCard
+          accountOptions={accountOptions}
+          captureForm={captureForm}
+          categoryOptions={categoryOptions}
+          error={captureMutation.error}
+          isOnline={isOnline}
+          isSubmitting={captureMutation.isPending}
+          onSubmit={onCaptureSubmit}
+        />
 
         <Card>
           <div className="section-header">
@@ -451,7 +698,33 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
             </div>
           </div>
 
-          <div className="list-stack">
+          <TransactionsTableToolbar
+            accountFilter={accountFilter}
+            accountOptions={accountFilterOptions.slice(1)}
+            categoryFilter={categoryFilter}
+            categoryOptions={categoryFilterOptions.slice(1)}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            globalSearch={globalSearch}
+            onAccountFilterChange={setAccountFilter}
+            onCategoryFilterChange={setCategoryFilter}
+            onClearFilters={clearFilters}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
+            onGlobalSearchChange={setGlobalSearch}
+            onReconciledFilterChange={setReconciledFilter}
+            onTypeFilterChange={setTypeFilter}
+            reconciledFilter={reconciledFilter}
+            transactionTypeOptions={transactionTypeOptions}
+            typeFilter={typeFilter}
+          />
+
+          <DataTable
+            emptyMessage={intl.formatMessage({ id: "transactions.table.emptyFiltered" })}
+            table={table}
+          />
+
+          <div className="list-stack mobile-only">
             {transactions.length ? (
               transactions.map((transaction) => (
                 <article className="transaction-row" key={transaction.id}>
