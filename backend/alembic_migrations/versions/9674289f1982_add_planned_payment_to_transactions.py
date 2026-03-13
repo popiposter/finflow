@@ -29,7 +29,7 @@ def upgrade() -> None:
             nullable=True,
         ),
     )
-    op.create_foreign_constraint(
+    op.create_foreign_key(
         "fk_transactions_planned_payment",
         "transactions",
         "planned_payments",

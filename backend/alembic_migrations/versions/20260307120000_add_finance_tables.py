@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "20260307120000"
@@ -21,15 +22,54 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade database schema."""
     # Enum types for finance domain
-    # Note: PostgreSQL enums are used for type safety and validation
+    # Use idempotent enum creation so a partially failed local bootstrap can rerun safely.
     op.execute(
-        "CREATE TYPE account_type AS ENUM ('checking', 'savings', 'credit_card', "
-        "'cash', 'investment', 'loan', 'other')"
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE account_type AS ENUM (
+                'checking',
+                'savings',
+                'credit_card',
+                'cash',
+                'investment',
+                'loan',
+                'other'
+            );
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;
+        """
     )
-    op.execute("CREATE TYPE category_type AS ENUM ('income', 'expense')")
     op.execute(
-        "CREATE TYPE transaction_type AS ENUM ('payment', 'refund', 'transfer', "
-        "'income', 'expense', 'adjustment')"
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE category_type AS ENUM ('income', 'expense');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;
+        """
+    )
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE transaction_type AS ENUM (
+                'payment',
+                'refund',
+                'transfer',
+                'income',
+                'expense',
+                'adjustment'
+            );
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;
+        """
     )
 
     # Accounts table
@@ -40,7 +80,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(), nullable=False),
         sa.Column(
             "type",
-            sa.Enum(
+            postgresql.ENUM(
                 "checking",
                 "savings",
                 "credit_card",
@@ -49,6 +89,7 @@ def upgrade() -> None:
                 "loan",
                 "other",
                 name="account_type",
+                create_type=False,
             ),
             nullable=False,
         ),
@@ -58,8 +99,18 @@ def upgrade() -> None:
         sa.Column("is_active", sa.Boolean(), nullable=False),
         sa.Column("opened_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("closed_at", sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
     )
@@ -80,14 +131,29 @@ def upgrade() -> None:
         sa.Column("description", sa.String(), nullable=True),
         sa.Column(
             "type",
-            sa.Enum("income", "expense", name="category_type"),
+            postgresql.ENUM(
+                "income",
+                "expense",
+                name="category_type",
+                create_type=False,
+            ),
             nullable=False,
         ),
         sa.Column("parent_id", sa.Uuid(), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=False),
         sa.Column("display_order", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["parent_id"], ["categories.id"], ondelete="SET NULL"),
@@ -113,7 +179,7 @@ def upgrade() -> None:
         sa.Column("amount", sa.Numeric(precision=18, scale=2), nullable=False),
         sa.Column(
             "type",
-            sa.Enum(
+            postgresql.ENUM(
                 "payment",
                 "refund",
                 "transfer",
@@ -121,6 +187,7 @@ def upgrade() -> None:
                 "expense",
                 "adjustment",
                 name="transaction_type",
+                create_type=False,
             ),
             nullable=False,
         ),
@@ -129,8 +196,18 @@ def upgrade() -> None:
         sa.Column("date_cash", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("statement_id", sa.Uuid(), nullable=True),
         sa.Column("is_reconciled", sa.Boolean(), nullable=False),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="CASCADE"),

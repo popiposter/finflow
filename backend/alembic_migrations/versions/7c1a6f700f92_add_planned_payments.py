@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "7c1a6f700f92"
@@ -21,7 +22,17 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade database schema."""
     # Create recurrence enum type
-    op.execute("CREATE TYPE recurrence AS ENUM ('daily', 'weekly', 'monthly')")
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE recurrence AS ENUM ('daily', 'weekly', 'monthly');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;
+        """
+    )
 
     # Planned payments table
     op.create_table(
@@ -34,15 +45,31 @@ def upgrade() -> None:
         sa.Column("description", sa.String(), nullable=True),
         sa.Column(
             "recurrence",
-            sa.Enum("daily", "weekly", "monthly", name="recurrence"),
+            postgresql.ENUM(
+                "daily",
+                "weekly",
+                "monthly",
+                name="recurrence",
+                create_type=False,
+            ),
             nullable=False,
         ),
         sa.Column("start_date", sa.Date(), nullable=False),
         sa.Column("end_date", sa.Date(), nullable=True),
         sa.Column("next_due_at", sa.Date(), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="CASCADE"),
