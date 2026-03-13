@@ -19,6 +19,11 @@ from app.db import async_session_factory
 pytestmark = pytest.mark.api
 
 
+def _error_message(response: AsyncClient | object) -> str:
+    data = response.json()
+    return data["error"]["message"]
+
+
 class TestListProjectedTransactions:
     """Tests for GET /api/v1/projected-transactions."""
 
@@ -371,7 +376,7 @@ class TestUpdateProjectedTransaction:
         )
 
         assert update_response.status_code == 404
-        assert update_response.json()["detail"] == "Category not found"
+        assert _error_message(update_response) == "Category not found"
 
 
 class TestConfirmProjectedTransaction:
@@ -674,7 +679,7 @@ class TestConfirmProjectedTransaction:
         )
 
         assert confirm_response.status_code == 404
-        assert confirm_response.json()["detail"] == "Category not found"
+        assert _error_message(confirm_response) == "Category not found"
 
 
 class TestSkipProjectedTransaction:
