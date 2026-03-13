@@ -37,6 +37,23 @@ ruff format .
 
 Ruff is advisory rather than a repo-enforced gate.
 
+## Containerized local dev
+
+The repo root contains a `compose.yml` that starts PostgreSQL, the backend, and the frontend together for local development.
+
+Typical flow from the repo root:
+
+```bash
+docker compose up --build
+```
+
+The backend service:
+- bind-mounts `backend/` for live reload
+- runs `uv sync --extra dev` inside the container into an isolated named virtualenv volume
+- applies `alembic upgrade head` before starting Uvicorn
+
+When dependencies change, restart the service or rerun `docker compose up --build`. When only Python source changes, `--reload` picks them up automatically.
+
 ## Practical lessons
 
 - Do not commit temporary `.claude/session-*.md` notes.

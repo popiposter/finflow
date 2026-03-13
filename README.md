@@ -66,3 +66,34 @@ npm run build
 ```
 
 The PWA ships an installable app shell, offline read-through cache for successful queries, and blocks offline mutations in the UI rather than queueing them.
+
+## Docker Dev Stack
+
+For an isolated one-command local stack, use Docker Compose from the repo root:
+
+```bash
+docker compose up --build
+```
+
+PowerShell helper:
+
+```powershell
+./scripts/dev/up-local-stack.ps1
+```
+
+This starts:
+- `db` on `localhost:5432`
+- `backend` on `http://127.0.0.1:8000`
+- `frontend` on `http://127.0.0.1:5173`
+
+The compose stack is set up for active development:
+- source directories are bind-mounted, so Python and Vite reload on code changes
+- backend dependencies live in an isolated named volume
+- frontend `node_modules` lives in an isolated named volume
+- backend runs `alembic upgrade head` automatically on startup
+
+Update rules during development:
+- app code only changed: keep `docker compose up` running and reload will pick it up
+- Python or npm dependencies changed: restart the affected service, or rerun `docker compose up --build`
+- Dockerfile / compose config changed: rerun `docker compose up --build`
+- want a clean dependency refresh: `docker compose down -v` and then `docker compose up --build`

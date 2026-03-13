@@ -1,0 +1,71 @@
+services:
+  db:
+    image: postgres:16
+    container_name: finflow-db
+    environment:
+      POSTGRES_DB: finflow
+      POSTGRES_USER: finflow
+      POSTGRES_PASSWORD: finflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - finflow-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finflow -d finflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: finflow-backend
+    working_dir: /app
+    environment:
+      DEBUG: "true"
+      DATABASE_URL: postgresql+asyncpg://finflow:finflow@db:5432/finflow
+      UV_LINK_MODE: copy
+      UV_PROJECT_ENVIRONMENT: /opt/finflow-venv
+    command: >
+      sh -c "uv sync --extra dev &&
+      uv run alembic upgrade head &&
+      uv run python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - ./backend:/app
+      - finflow-backend-venv:/opt/finflow-venv
+      - finflow-uv-cache:/root/.cache/uv
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: finflow-frontend
+    working_dir: /app
+    environment:
+      VITE_API_BASE_URL: /api/v1
+      VITE_DEV_PROXY_TARGET: http://backend:8000
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    command: >
+      sh -c "npm install &&
+      npm run dev -- --host 0.0.0.0 --port 5173"
+    volumes:
+      - ./frontend:/app
+      - finflow-frontend-node-modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_started
+
+volumes:
+  finflow-postgres-data:
+  finflow-backend-venv:
+  finflow-uv-cache:
+  finflow-frontend-node-modules:
