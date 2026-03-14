@@ -1,9 +1,11 @@
 import { ChevronRight, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 import { useLogoutMutation, useSessionQuery } from "@/features/auth/session";
 import { LanguageSwitcher } from "@/features/settings/LanguageSwitcher";
 import { useAppIntl } from "@/shared/lib/i18n";
+import { AnimatedPage } from "@/shared/ui/AnimatedPage";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 
@@ -15,11 +17,12 @@ export function SettingsPage() {
 
   const handleLogout = async () => {
     await logoutMutation.mutateAsync();
+    toast.success(intl.formatMessage({ id: "toast.loggedOut" }));
     navigate("/login", { replace: true });
   };
 
   return (
-    <div className="page-stack">
+    <AnimatedPage className="page-stack">
       <Card>
         <p className="eyebrow">{intl.formatMessage({ id: "settings.ownerEyebrow" })}</p>
         <h2 className="section-title">
@@ -81,6 +84,6 @@ export function SettingsPage() {
             : intl.formatMessage({ id: "common.signOut" })}
         </Button>
       </Card>
-    </div>
+    </AnimatedPage>
   );
 }

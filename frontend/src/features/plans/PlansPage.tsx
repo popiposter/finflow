@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { toast } from "sonner";
+
 import { listAccounts } from "@/shared/api/accounts";
 import { listCategories } from "@/shared/api/categories";
 import {
@@ -16,6 +18,8 @@ import {
 } from "@/shared/api/plans";
 import type { PlannedPayment, Recurrence } from "@/shared/api/types";
 import { useAppIntl } from "@/shared/lib/i18n";
+import { AnimatedPage } from "@/shared/ui/AnimatedPage";
+import { AnimatedList, AnimatedListItem } from "@/shared/ui/AnimatedList";
 import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { recurrenceLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
@@ -24,6 +28,7 @@ import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { DialogSheet } from "@/shared/ui/DialogSheet";
+import { SkeletonRows } from "@/shared/ui/Skeleton";
 
 const recurrences = ["daily", "weekly", "monthly"] as const satisfies Recurrence[];
 
@@ -125,8 +130,12 @@ export function PlansPage() {
   const createMutation = useMutation({
     mutationFn: createPlan,
     onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.planCreated" }));
       setIsDialogOpen(false);
       await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
@@ -134,15 +143,25 @@ export function PlansPage() {
     mutationFn: ({ planId, payload }: { planId: string; payload: PlanFormValues }) =>
       updatePlan(planId, normalizePlanPayload(payload)),
     onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.planUpdated" }));
       setEditingPlan(null);
       setIsDialogOpen(false);
       await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deletePlan,
-    onSuccess: refreshWorkspace,
+    onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.planDeleted" }));
+      await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
+    },
   });
 
   const generateMutation = useMutation({
@@ -152,10 +171,14 @@ export function PlansPage() {
         (sum, item) => sum + item.generated_projections.length,
         0,
       );
+      toast.success(intl.formatMessage({ id: "toast.projectionsGenerated" }));
       setGenerationSummary(
         intl.formatMessage({ id: "plans.generatedSummary" }, { count: generatedCount }),
       );
       await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
@@ -172,7 +195,7 @@ export function PlansPage() {
   });
 
   return (
-    <div className="page-stack">
+    <AnimatedPage className="page-stack">
       <div className="split-header">
         <div>
           <p className="eyebrow">{intl.formatMessage({ id: "plans.eyebrow" })}</p>
@@ -209,55 +232,69 @@ export function PlansPage() {
 
       <Card>
         <div className="list-stack">
-          {plansQuery.data?.length ? (
-            plansQuery.data.map((plan) => (
-              <article className="transaction-row" key={plan.id}>
-                <div>
-                  <div className="transaction-row__title">
-                    {plan.description ?? intl.formatMessage({ id: "plans.untitled" })}
-                  </div>
-                  <div className="transaction-row__meta">
-                    {recurrenceLabel(intl, plan.recurrence)} ·{" "}
-                    {intl.formatMessage(
-                      { id: "plans.nextDue" },
-                      { date: formatShortDate(plan.next_due_at) },
-                    )}
-                  </div>
-                </div>
+          {plansQuery.isLoading ? (
+            <SkeletonRows count={4} />
+          ) : plansQuery.data?.length ? (
+            <AnimatedList>
+              {plansQuery.data.map((plan) => (
+                <AnimatedListItem key={plan.id}>
+                  <article className="transaction-row">
+                    <div>
+                      <div className="transaction-row__title">
+                        {plan.description ?? intl.formatMessage({ id: "plans.untitled" })}
+                        {!plan.is_active && (
+                          <span className="status-badge status-badge--skipped" style={{ marginLeft: "0.5rem" }}>
+                            {intl.formatMessage({ id: "plans.inactive" })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="transaction-row__meta">
+                        <span className="recurrence-badge">
+                          {recurrenceLabel(intl, plan.recurrence)}
+                        </span>
+                        {" · "}
+                        {intl.formatMessage(
+                          { id: "plans.nextDue" },
+                          { date: formatShortDate(plan.next_due_at) },
+                        )}
+                      </div>
+                    </div>
 
-                <div className="transaction-row__actions">
-                  <strong>{formatCurrency(plan.amount)}</strong>
-                  <div className="row-button-group">
-                    <button
-                      className="inline-action"
-                      disabled={!isOnline}
-                      type="button"
-                      onClick={() => {
-                        setEditingPlan(plan);
-                        setIsDialogOpen(true);
-                      }}
-                      >
-                        <Pencil size={14} />
-                        {intl.formatMessage({ id: "common.edit" })}
-                      </button>
-                    <button
-                      className="inline-action inline-action--danger"
-                      disabled={!isOnline || deleteMutation.isPending}
-                      type="button"
-                        onClick={() => {
-                          if (window.confirm(intl.formatMessage({ id: "plans.deleteConfirm" }))) {
-                            void deleteMutation.mutateAsync(plan.id);
-                          }
-                        }}
-                      >
-                        <Trash2 size={14} />
-                        {intl.formatMessage({ id: "common.delete" })}
-                      </button>
-                  </div>
-                </div>
-              </article>
-            ))
-            ) : (
+                    <div className="transaction-row__actions">
+                      <strong>{formatCurrency(plan.amount)}</strong>
+                      <div className="row-button-group">
+                        <button
+                          className="inline-action"
+                          disabled={!isOnline}
+                          type="button"
+                          onClick={() => {
+                            setEditingPlan(plan);
+                            setIsDialogOpen(true);
+                          }}
+                        >
+                          <Pencil size={14} />
+                          {intl.formatMessage({ id: "common.edit" })}
+                        </button>
+                        <button
+                          className="inline-action inline-action--danger"
+                          disabled={!isOnline || deleteMutation.isPending}
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(intl.formatMessage({ id: "plans.deleteConfirm" }))) {
+                              void deleteMutation.mutateAsync(plan.id);
+                            }
+                          }}
+                        >
+                          <Trash2 size={14} />
+                          {intl.formatMessage({ id: "common.delete" })}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                </AnimatedListItem>
+              ))}
+            </AnimatedList>
+          ) : (
             <div className="empty-state">{intl.formatMessage({ id: "plans.empty" })}</div>
           )}
         </div>
@@ -381,7 +418,7 @@ export function PlansPage() {
           </Button>
         </form>
       </DialogSheet>
-    </div>
+    </AnimatedPage>
   );
 }
 

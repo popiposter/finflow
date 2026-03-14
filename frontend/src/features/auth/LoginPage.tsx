@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -41,6 +42,7 @@ export function LoginPage() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       await loginMutation.mutateAsync(values);
+      toast.success(intl.formatMessage({ id: "toast.loggedIn" }));
       const next = (location.state as { from?: string } | null)?.from ?? "/";
       navigate(next, { replace: true });
     } catch (error) {

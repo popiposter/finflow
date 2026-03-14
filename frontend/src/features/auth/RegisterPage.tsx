@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -40,6 +41,7 @@ export function RegisterPage() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       await registerMutation.mutateAsync(values);
+      toast.success(intl.formatMessage({ id: "toast.accountRegistered" }));
       navigate("/", { replace: true });
     } catch (error) {
       applyApiFieldErrors(error, setError, intl);

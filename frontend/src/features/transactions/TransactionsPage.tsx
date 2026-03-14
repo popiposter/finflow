@@ -13,6 +13,8 @@ import { useForm } from "react-hook-form";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
+import { toast } from "sonner";
+
 import { listAccounts } from "@/shared/api/accounts";
 import { listCategories } from "@/shared/api/categories";
 import {
@@ -28,6 +30,7 @@ import type {
   TransactionType,
   TransactionWorkbookImportResponse,
 } from "@/shared/api/types";
+import { AnimatedPage } from "@/shared/ui/AnimatedPage";
 import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { formatImportRowError } from "@/shared/lib/api-errors";
 import { getFieldErrorMessage, getValidationMessages } from "@/shared/lib/validation";
@@ -44,6 +47,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { DataTable } from "@/shared/ui/DataTable";
 import { DialogSheet } from "@/shared/ui/DialogSheet";
+import { SkeletonRows } from "@/shared/ui/Skeleton";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
 import { TransactionsTableToolbar } from "@/features/transactions/TransactionsTableToolbar";
 import {
@@ -266,8 +270,12 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
   const createMutation = useMutation({
     mutationFn: createTransaction,
     onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.transactionCreated" }));
       setIsDialogOpen(false);
       await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
@@ -280,20 +288,31 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
       payload: Record<string, unknown>;
     }) => patchTransaction(transactionId, payload),
     onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.transactionUpdated" }));
       setEditingTransaction(null);
       setIsDialogOpen(false);
       await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteTransaction,
-    onSuccess: refreshWorkspace,
+    onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.transactionDeleted" }));
+      await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
+    },
   });
 
   const captureMutation = useMutation({
     mutationFn: parseAndCreateTransaction,
     onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.transactionCreated" }));
       captureForm.reset({
         text: "",
         account_id: accountOptions[0]?.id ?? "",
@@ -301,15 +320,22 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
       });
       await refreshWorkspace();
     },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
+    },
   });
 
   const importMutation = useMutation({
     mutationFn: importTransactionsWorkbook,
     onSuccess: async (result) => {
+      toast.success(intl.formatMessage({ id: "toast.importComplete" }, { count: result.imported_count }));
       setImportSummary(result);
       setIsImportDialogOpen(false);
       setImportFile(null);
       await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
@@ -612,7 +638,7 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
   ]);
 
   return (
-    <div className="page-stack">
+    <AnimatedPage className="page-stack">
       <div className="split-header">
         <div>
           <p className="eyebrow">{intl.formatMessage({ id: "transactions.eyebrow" })}</p>
@@ -725,7 +751,9 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
           />
 
           <div className="list-stack mobile-only">
-            {transactions.length ? (
+            {transactionsQuery.isLoading ? (
+              <SkeletonRows count={5} />
+            ) : transactions.length ? (
               transactions.map((transaction) => (
                 <article className="transaction-row" key={transaction.id}>
                   <div>
@@ -733,7 +761,11 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
                       {transaction.description ?? intl.formatMessage({ id: "transactions.untitled" })}
                     </div>
                     <div className="transaction-row__meta">
-                      {transactionTypeLabel(intl, transaction.type)} · {formatShortDate(transaction.date_cash)}
+                      <span className={`status-badge status-badge--${transaction.type === "income" ? "income" : "expense"}`}>
+                        {transactionTypeLabel(intl, transaction.type)}
+                      </span>
+                      {" · "}
+                      {formatShortDate(transaction.date_cash)}
                     </div>
                   </div>
 
@@ -961,6 +993,6 @@ export function TransactionsPage({ autoOpenNew = false }: TransactionsPageProps)
           </Button>
         </form>
       </DialogSheet>
-    </div>
+    </AnimatedPage>
   );
 }
