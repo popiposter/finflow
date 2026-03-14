@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { BellRing, Landmark, LayoutDashboard, ListTodo, ReceiptText, Settings2 } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 
@@ -29,11 +30,19 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
-      {!isOnline ? (
-        <div className="offline-banner">
-          {intl.formatMessage({ id: "shell.offlineBanner" })}
-        </div>
-      ) : null}
+      <AnimatePresence>
+        {!isOnline && (
+          <motion.div
+            className="offline-banner"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            {intl.formatMessage({ id: "shell.offlineBanner" })}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <aside className="sidebar">
         <div className="brand-block">
@@ -97,7 +106,9 @@ export function AppShell() {
         </header>
 
         <main className="page-content">
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <Outlet key={location.pathname} />
+          </AnimatePresence>
         </main>
 
         <nav className="bottom-nav" aria-label="Mobile primary">
@@ -116,6 +127,15 @@ export function AppShell() {
               </NavLink>
             );
           })}
+          <NavLink
+            className={({ isActive }) =>
+              cn("bottom-link", isActive && "is-active")
+            }
+            to="/settings"
+          >
+            <Settings2 size={18} />
+            <span>{intl.formatMessage({ id: "shell.settings" })}</span>
+          </NavLink>
         </nav>
       </div>
     </div>

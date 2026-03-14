@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarCheck2, CircleOff, Pencil } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { listCategories } from "@/shared/api/categories";
@@ -14,14 +15,17 @@ import {
 } from "@/shared/api/projections";
 import type { ProjectedTransaction, ProjectedTransactionStatus } from "@/shared/api/types";
 import { useAppIntl } from "@/shared/lib/i18n";
-import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { projectionStatusLabel, transactionTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { getFieldErrorMessage, getValidationMessages } from "@/shared/lib/validation";
 import { formatCurrency, formatShortDate, todayOffset } from "@/shared/lib/utils";
+import { AnimatedPage } from "@/shared/ui/AnimatedPage";
+import { AnimatedList, AnimatedListItem } from "@/shared/ui/AnimatedList";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { DialogSheet } from "@/shared/ui/DialogSheet";
+import { SkeletonRows } from "@/shared/ui/Skeleton";
 
 const statuses = ["pending", "confirmed", "skipped"] as const satisfies ProjectedTransactionStatus[];
 
@@ -118,20 +122,36 @@ export function ProjectionsPage() {
         projected_category_id: payload.projected_category_id || null,
       }),
     onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.projectionUpdated" }));
       setEditingProjection(null);
       setIsDialogOpen(false);
       await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
   const confirmMutation = useMutation({
     mutationFn: (projectionId: string) => confirmProjectedTransaction(projectionId),
-    onSuccess: refreshWorkspace,
+    onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.projectionConfirmed" }));
+      await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
+    },
   });
 
   const skipMutation = useMutation({
     mutationFn: skipProjectedTransaction,
-    onSuccess: refreshWorkspace,
+    onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.projectionSkipped" }));
+      await refreshWorkspace();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
+    },
   });
 
   const onSubmit = projectionForm.handleSubmit(async (values) => {
@@ -148,7 +168,7 @@ export function ProjectionsPage() {
   const projections = useMemo(() => projectionsQuery.data ?? [], [projectionsQuery.data]);
 
   return (
-    <div className="page-stack">
+    <AnimatedPage className="page-stack">
       <div className="split-header">
         <div>
           <p className="eyebrow">{intl.formatMessage({ id: "projections.eyebrow" })}</p>
@@ -188,11 +208,15 @@ export function ProjectionsPage() {
 
       <Card>
         <div className="list-stack">
-          {projections.length ? (
-            projections.map((projection) => {
+          {projectionsQuery.isLoading ? (
+            <SkeletonRows count={5} />
+          ) : projections.length ? (
+            <AnimatedList>
+            {projections.map((projection) => {
               const isPending = projection.status === "pending";
               return (
-                <article className="projection-row" key={projection.id}>
+                <AnimatedListItem key={projection.id}>
+                <article className="projection-row">
                   <div>
                     <div className="transaction-row__title">
                       {projection.projected_description ??
@@ -247,8 +271,10 @@ export function ProjectionsPage() {
                     </div>
                   </div>
                 </article>
+                </AnimatedListItem>
               );
-            })
+            })}
+            </AnimatedList>
           ) : (
             <div className="empty-state">{intl.formatMessage({ id: "projections.empty" })}</div>
           )}
@@ -312,6 +338,6 @@ export function ProjectionsPage() {
           </Button>
         </form>
       </DialogSheet>
-    </div>
+    </AnimatedPage>
   );
 }

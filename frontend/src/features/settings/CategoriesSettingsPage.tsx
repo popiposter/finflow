@@ -3,18 +3,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { createCategory, deleteCategory, listCategories, updateCategory } from "@/shared/api/categories";
 import type { Category, CategoryType } from "@/shared/api/types";
 import { useAppIntl } from "@/shared/lib/i18n";
-import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { categoryTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { getFieldErrorMessage, getValidationMessages } from "@/shared/lib/validation";
+import { AnimatedPage } from "@/shared/ui/AnimatedPage";
+import { AnimatedList, AnimatedListItem } from "@/shared/ui/AnimatedList";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { DialogSheet } from "@/shared/ui/DialogSheet";
+import { SkeletonRows } from "@/shared/ui/Skeleton";
 
 const categoryTypes = ["income", "expense"] as const satisfies CategoryType[];
 
@@ -104,8 +108,12 @@ export function CategoriesSettingsPage() {
   const createMutation = useMutation({
     mutationFn: createCategory,
     onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.categoryCreated" }));
       setIsDialogOpen(false);
       await refreshCategories();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
@@ -118,15 +126,25 @@ export function CategoriesSettingsPage() {
       payload: CategoryFormValues;
     }) => updateCategory(categoryId, normalizeCategoryPayload(payload)),
     onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.categoryUpdated" }));
       setEditingCategory(null);
       setIsDialogOpen(false);
       await refreshCategories();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteCategory,
-    onSuccess: refreshCategories,
+    onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.categoryDeleted" }));
+      await refreshCategories();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
+    },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -142,7 +160,7 @@ export function CategoriesSettingsPage() {
   });
 
   return (
-    <div className="page-stack">
+    <AnimatedPage className="page-stack">
       <div className="split-header">
         <div>
           <p className="eyebrow">{intl.formatMessage({ id: "settings.categoriesTitle" })}</p>
@@ -163,13 +181,23 @@ export function CategoriesSettingsPage() {
 
       <Card>
         <div className="list-stack">
-          {categoriesQuery.data?.length ? (
-            categoriesQuery.data.map((category) => (
-              <article className="transaction-row" key={category.id}>
+          {categoriesQuery.isLoading ? (
+            <SkeletonRows count={4} />
+          ) : categoriesQuery.data?.length ? (
+            <AnimatedList>
+            {categoriesQuery.data.map((category) => (
+              <AnimatedListItem key={category.id}>
+              <article className="transaction-row">
                 <div>
-                  <div className="transaction-row__title">{category.name}</div>
+                  <div className="transaction-row__title">
+                    <span className={`category-dot category-dot--${category.type}`} />
+                    {category.name}
+                  </div>
                   <div className="transaction-row__meta">
-                    {categoryTypeLabel(intl, category.type)} ·{" "}
+                    <span className={`status-badge status-badge--${category.type === "income" ? "income" : "expense"}`}>
+                      {categoryTypeLabel(intl, category.type)}
+                    </span>
+                    {" · "}
                     {intl.formatMessage(
                       { id: "categories.orderMeta" },
                       { count: category.display_order },
@@ -212,8 +240,10 @@ export function CategoriesSettingsPage() {
                   </div>
                 </div>
               </article>
-            ))
-            ) : (
+              </AnimatedListItem>
+            ))}
+            </AnimatedList>
+          ) : (
               <div className="empty-state">{intl.formatMessage({ id: "categories.empty" })}</div>
             )}
           </div>
@@ -300,7 +330,7 @@ export function CategoriesSettingsPage() {
           </Button>
         </form>
       </DialogSheet>
-    </div>
+    </AnimatedPage>
   );
 }
 

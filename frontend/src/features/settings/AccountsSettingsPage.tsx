@@ -3,19 +3,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { createAccount, deleteAccount, listAccounts, updateAccount } from "@/shared/api/accounts";
 import type { Account, AccountType } from "@/shared/api/types";
 import { useAppIntl } from "@/shared/lib/i18n";
-import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { accountTypeLabel } from "@/shared/lib/labels";
 import { useOnlineStatus } from "@/shared/lib/offline";
 import { getFieldErrorMessage, getValidationMessages } from "@/shared/lib/validation";
 import { formatCurrency } from "@/shared/lib/utils";
+import { AnimatedPage } from "@/shared/ui/AnimatedPage";
+import { AnimatedList, AnimatedListItem } from "@/shared/ui/AnimatedList";
+import { ApiErrorCallout } from "@/shared/ui/ApiErrorCallout";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { DialogSheet } from "@/shared/ui/DialogSheet";
+import { SkeletonRows } from "@/shared/ui/Skeleton";
 
 const accountTypes = [
   "checking",
@@ -103,8 +107,12 @@ export function AccountsSettingsPage() {
   const createMutation = useMutation({
     mutationFn: createAccount,
     onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.accountCreated" }));
       setIsDialogOpen(false);
       await refreshAccounts();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
@@ -117,15 +125,25 @@ export function AccountsSettingsPage() {
       payload: AccountFormValues;
     }) => updateAccount(accountId, normalizeAccountPayload(payload)),
     onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.accountUpdated" }));
       setEditingAccount(null);
       setIsDialogOpen(false);
       await refreshAccounts();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAccount,
-    onSuccess: refreshAccounts,
+    onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "toast.accountDeleted" }));
+      await refreshAccounts();
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
+    },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -141,7 +159,7 @@ export function AccountsSettingsPage() {
   });
 
   return (
-    <div className="page-stack">
+    <AnimatedPage className="page-stack">
       <div className="split-header">
         <div>
           <p className="eyebrow">{intl.formatMessage({ id: "settings.accountsTitle" })}</p>
@@ -162,9 +180,13 @@ export function AccountsSettingsPage() {
 
       <Card>
         <div className="list-stack">
-          {accountsQuery.data?.length ? (
-            accountsQuery.data.map((account) => (
-              <article className="transaction-row" key={account.id}>
+          {accountsQuery.isLoading ? (
+            <SkeletonRows count={4} />
+          ) : accountsQuery.data?.length ? (
+            <AnimatedList>
+            {accountsQuery.data.map((account) => (
+              <AnimatedListItem key={account.id}>
+              <article className="transaction-row">
                 <div>
                   <div className="transaction-row__title">{account.name}</div>
                   <div className="transaction-row__meta">
@@ -203,8 +225,10 @@ export function AccountsSettingsPage() {
                   </div>
                 </div>
               </article>
-            ))
-            ) : (
+              </AnimatedListItem>
+            ))}
+            </AnimatedList>
+          ) : (
               <div className="empty-state">{intl.formatMessage({ id: "accounts.empty" })}</div>
             )}
           </div>
@@ -284,7 +308,7 @@ export function AccountsSettingsPage() {
           </Button>
         </form>
       </DialogSheet>
-    </div>
+    </AnimatedPage>
   );
 }
 
