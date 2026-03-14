@@ -25,6 +25,8 @@ services:
     environment:
       DEBUG: "true"
       DATABASE_URL: postgresql+asyncpg://finflow:finflow@db:5432/finflow
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-change-me-telegram-webhook-secret}
       UV_LINK_MODE: copy
       UV_PROJECT_ENVIRONMENT: /opt/finflow-venv
     command: >

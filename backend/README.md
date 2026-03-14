@@ -52,6 +52,22 @@ The backend service:
 - runs `uv sync --extra dev` inside the container into an isolated named virtualenv volume
 - applies `alembic upgrade head` before starting Uvicorn
 
+If you want to exercise the Telegram bot integration locally, provide:
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_WEBHOOK_SECRET`
+
+The webhook endpoint is:
+
+```text
+POST /api/v1/integrations/telegram/webhook/{TELEGRAM_WEBHOOK_SECRET}
+```
+
+The current bot MVP supports:
+- `/connect <api_token> [account_id]`
+- `/status`
+- `/disconnect`
+- plain text transaction capture after linking
+
 When dependencies change, restart the service or rerun `docker compose up --build`. When only Python source changes, `--reload` picks them up automatically.
 
 ## Practical lessons

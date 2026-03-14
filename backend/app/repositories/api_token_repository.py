@@ -90,6 +90,29 @@ class ApiTokenRepository:
         result = await self.session.scalars(stmt)
         return list(result.all())
 
+    async def get_all_active(
+        self,
+        current_time: datetime | None = None,
+    ) -> list[ApiToken]:
+        """Get all active API tokens.
+
+        This is used for token verification flows where tokens are stored
+        as salted hashes and therefore cannot be looked up directly.
+        """
+        if current_time is None:
+            current_time = datetime.now(timezone.utc)
+
+        stmt = (
+            select(ApiToken)
+            .where(
+                ~ApiToken.is_revoked,
+                ApiToken.expires_at > current_time,
+            )
+            .order_by(ApiToken.created_at.desc())
+        )
+        result = await self.session.scalars(stmt)
+        return list(result.all())
+
     async def revoke(self, token: ApiToken) -> ApiToken:
         """Revoke an API token.
 

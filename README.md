@@ -42,6 +42,7 @@ FinFlow currently supports:
 - transaction patch editing
 - parse-and-create ingestion from free-form text
 - bulk import of actual transactions from `.xlsx`
+- Telegram bot ingestion for quick expense/income capture
 - planned payment templates
 - projected transactions with edit, confirm, and skip flows
 - scheduler-backed recurring projection generation
@@ -123,6 +124,7 @@ ruff format .
 - Backend and frontend are intended to run on the same origin in production-style setups.
 - Offline behavior is read-only by design for now; mutations are intentionally blocked without a connection.
 - `.xlsx` import currently expects the first sheet in `date / description / amount` order.
+- Telegram bot input is webhook-based: link a chat with `/connect <api_token> [account_id]`, then send plain text like `coffee 350 rub`.
 - Error responses use a normalized envelope so the frontend can localize and map them consistently.
 
 ## Status

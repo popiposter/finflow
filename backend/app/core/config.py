@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     api_token_length: int = 32
     api_token_expire_days: int = 365
 
+    # Telegram bot integration
+    telegram_bot_token: str | None = None
+    telegram_webhook_secret: str = "change-me-telegram-webhook-secret"
+
     @property
     def is_production(self) -> bool:
         """Check if running in production mode."""

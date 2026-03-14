@@ -6,6 +6,7 @@ from app.models.category import Category
 from app.models.planned_payment import PlannedPayment
 from app.models.projected_transaction import ProjectedTransaction
 from app.models.refresh_session import RefreshSession
+from app.models.telegram_chat_link import TelegramChatLink
 from app.models.transaction import Transaction
 from app.models.types import (
     MAX_ACCOUNT_NAME_LENGTH,
@@ -26,6 +27,7 @@ __all__ = [
     "User",
     "ApiToken",
     "RefreshSession",
+    "TelegramChatLink",
     # Finance models
     "Account",
     "Category",

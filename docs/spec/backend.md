@@ -4,10 +4,11 @@
 FinFlow backend supports:
 - user authentication via login/password
 - browser sessions with rotating JWT cookies
-- long-lived API tokens for iOS Shortcut
+- long-lived API tokens for iOS Shortcut and Telegram chat linking
 - accounts, categories, transactions, planned-payment templates, and projected transactions
 - parse-and-create ingestion from free-form text
 - workbook import of actual transactions from `.xlsx`
+- Telegram bot ingestion into actual transactions
 - BDR/accrual and BDDS/cashflow reports
 - unified cashflow ledger and forecast reads over actual plus projected data
 - scheduler-backed recurring projection generation
@@ -21,6 +22,7 @@ The backend foundation is in place through:
 - reporting plus cashflow ledger/forecast
 - refined parse-and-create ingestion coverage
 - `.xlsx` transaction import into actual transactions
+- Telegram webhook ingestion with chat-to-account linking
 - normalized API error envelopes with stable error codes and field maps
 
 ## API surface
@@ -29,6 +31,7 @@ Main API groups under `/api/v1`:
 - `/accounts`, `/categories`, `/transactions` for core finance CRUD
 - `/transactions/parse-and-create` for free-form ingestion into persisted transactions
 - `/transactions/import` for workbook-based bulk ingestion into persisted transactions
+- `/integrations/telegram/webhook/{secret}` for Telegram bot updates
 - `/planned-payments` for recurring template CRUD plus `POST /generate`
 - `/projected-transactions` for listing, updating, confirming, and skipping projections
 - `/reports/pnl` and `/reports/cashflow` for accrual/cash aggregations
@@ -45,10 +48,12 @@ Main API groups under `/api/v1`:
 ## Parse-and-create behavior
 - Request body is `text`, required `account_id`, and optional `category_id`.
 - Separate bulk-import flow accepts multipart form-data with required `account_id` and `.xlsx` file.
+- Telegram flow links a chat through `/connect <api_token> [account_id]` and then reuses the same parse-and-create service for free-form text messages.
 - Parser uses deterministic heuristics for amount, description, category hints, and simple income/refund inference.
 - Ownership of account/category is validated against the authenticated user before persistence.
 - If `category_id` is omitted, the service may auto-match a user category by detected category name.
 - Workbook import reads the first sheet in `date / description / amount` order, infers income vs expense from the sign, and returns imported/skipped row summary.
+- Telegram reply messages are best-effort bot confirmations and do not change the normalized API response contract for the webhook itself.
 
 ## Conventions
 - API prefix: `/api/v1`
