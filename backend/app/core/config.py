@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     api_token_length: int = 32
     api_token_expire_days: int = 365
 
+    # Ollama LLM fallback parsing
+    ollama_parse_enabled: bool = False
+    ollama_api_base_url: str = "https://ollama.com/api"
+    ollama_api_key: str | None = None
+    ollama_model: str = "gpt-oss:120b"
+    ollama_timeout_seconds: float = 20.0
+    ollama_parse_min_confidence: float = 0.75
+
     @property
     def is_production(self) -> bool:
         """Check if running in production mode."""

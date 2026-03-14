@@ -41,6 +41,7 @@ FinFlow currently supports:
 - accounts, categories, and actual transaction CRUD
 - transaction patch editing
 - parse-and-create ingestion from free-form text
+- optional Ollama-backed LLM fallback for ambiguous text parsing
 - bulk import of actual transactions from `.xlsx`
 - planned payment templates
 - projected transactions with edit, confirm, and skip flows
@@ -123,6 +124,7 @@ ruff format .
 - Backend and frontend are intended to run on the same origin in production-style setups.
 - Offline behavior is read-only by design for now; mutations are intentionally blocked without a connection.
 - `.xlsx` import currently expects the first sheet in `date / description / amount` order.
+- LLM parsing is feature-flagged and currently augments `parse-and-create` only when heuristics cannot confidently extract an amount.
 - Error responses use a normalized envelope so the frontend can localize and map them consistently.
 
 ## Status

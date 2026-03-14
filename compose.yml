@@ -25,6 +25,10 @@ services:
     environment:
       DEBUG: "true"
       DATABASE_URL: postgresql+asyncpg://finflow:finflow@db:5432/finflow
+      OLLAMA_PARSE_ENABLED: ${OLLAMA_PARSE_ENABLED:-false}
+      OLLAMA_API_BASE_URL: ${OLLAMA_API_BASE_URL:-https://ollama.com/api}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gpt-oss:120b}
       UV_LINK_MODE: copy
       UV_PROJECT_ENVIRONMENT: /opt/finflow-venv
     command: >

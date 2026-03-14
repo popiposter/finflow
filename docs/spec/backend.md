@@ -7,6 +7,7 @@ FinFlow backend supports:
 - long-lived API tokens for iOS Shortcut
 - accounts, categories, transactions, planned-payment templates, and projected transactions
 - parse-and-create ingestion from free-form text
+- optional Ollama-backed fallback parsing for ambiguous free-form text
 - workbook import of actual transactions from `.xlsx`
 - BDR/accrual and BDDS/cashflow reports
 - unified cashflow ledger and forecast reads over actual plus projected data
@@ -20,6 +21,7 @@ The backend foundation is in place through:
 - scheduler-backed projection generation
 - reporting plus cashflow ledger/forecast
 - refined parse-and-create ingestion coverage
+- feature-flagged LLM fallback for parse-and-create
 - `.xlsx` transaction import into actual transactions
 - normalized API error envelopes with stable error codes and field maps
 
@@ -46,6 +48,7 @@ Main API groups under `/api/v1`:
 - Request body is `text`, required `account_id`, and optional `category_id`.
 - Separate bulk-import flow accepts multipart form-data with required `account_id` and `.xlsx` file.
 - Parser uses deterministic heuristics for amount, description, category hints, and simple income/refund inference.
+- If heuristics cannot confidently extract an amount, the backend may optionally call an Ollama-compatible chat model for a strict JSON fallback parse.
 - Ownership of account/category is validated against the authenticated user before persistence.
 - If `category_id` is omitted, the service may auto-match a user category by detected category name.
 - Workbook import reads the first sheet in `date / description / amount` order, infers income vs expense from the sign, and returns imported/skipped row summary.

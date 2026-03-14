@@ -40,6 +40,7 @@ from app.schemas.finance import (
     TransactionPatch,
     TransactionOut,
 )
+from app.schemas.llm import LLMTransactionParse
 from app.schemas.parse_create import (
     ParseAndCreateResponse,
     ParsedResult,
@@ -88,6 +89,8 @@ __all__ = [
     "CashflowReportResponse",
     "ReportCategoryTotal",
     "ReportTypeTotal",
+    # LLM
+    "LLMTransactionParse",
     # Parse-and-create
     "ParseRequest",
     "ParsedResult",
