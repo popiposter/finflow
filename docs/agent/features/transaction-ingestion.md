@@ -10,6 +10,7 @@ stored transaction.
 - transaction creation service
 - workbook import service
 - heuristic parser fallback for free-form text
+- optional Ollama LLM fallback parser for ambiguous text
 - endpoint for iOS Shortcut ingestion
 - endpoint for `.xlsx` batch import into actual transactions
 - Telegram bot webhook ingestion that reuses the same parse-and-create service
@@ -45,6 +46,7 @@ Telegram bot contract:
 - Extract amount from text using regex/heuristics.
 - Prefer the amount explicitly marked as money when multiple numbers appear.
 - If no money marker is present, prefer the trailing amount over an earlier count.
+- If heuristics still cannot determine an amount, an optional LLM fallback may return structured JSON with confidence gating.
 - Preserve a cleaned human-readable description rather than storing raw text unchanged.
 - Infer category only when confidence is reasonable; otherwise allow uncategorized transaction.
 - Infer transaction type only for simple high-confidence cases such as income/refund keywords.
@@ -55,6 +57,7 @@ Telegram bot contract:
 - Route remains thin.
 - Parsing logic lives in a service/helper module.
 - Keep parser implementation replaceable by future LLM-based parsing.
+- LLM integration must stay behind config flags and return strict JSON validated by Pydantic before any persistence.
 - Validate real account/category ownership before persisting.
 - Use authenticated DB lookups for account and optional category before creating the transaction.
 - Telegram linking must validate the API token and selected account ownership before persisting a chat link.

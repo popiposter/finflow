@@ -10,6 +10,8 @@ from app.models.types import AccountType, CategoryType
 from app.repositories.account_repository import AccountRepository
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.transaction_repository import TransactionRepository
+from app.schemas.parse_create import ParsedResult
+from app.services.llm_parse_service import LLMParseService
 
 pytestmark = pytest.mark.api
 
@@ -175,3 +177,64 @@ class TestParseCreateAPI:
 
         assert response.status_code == 400
         assert _error_message(response) == "Account not found"
+
+    async def test_parse_and_create_uses_llm_fallback_when_enabled(
+        self,
+        async_client: AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """LLM fallback should create a transaction when heuristics miss the amount."""
+        user_id, access_token = await _register_and_login(
+            async_client, "parse-llm@example.com"
+        )
+
+        async with async_session_factory() as session:
+            account_repo = AccountRepository(session)
+            account = await account_repo.create(
+                user_id=user_id,
+                name="Main account",
+                type_=AccountType.CHECKING,
+            )
+            category_repo = CategoryRepository(session)
+            coffee_category = await category_repo.create(
+                user_id=user_id,
+                name="Кофе",
+                type_=CategoryType.EXPENSE,
+            )
+            await session.commit()
+
+        async def fake_parse_text(self: LLMParseService, text: str) -> ParsedResult | None:
+            del self
+            assert text == "кофе за триста пятьдесят"
+            return ParsedResult(
+                amount="350.00",
+                description="кофе",
+                category_name="Кофе",
+                transaction_type="expense",
+                original_text=text,
+            )
+
+        monkeypatch.setattr(
+            "app.services.llm_parse_service.settings.ollama_parse_enabled",
+            True,
+        )
+        monkeypatch.setattr(
+            LLMParseService,
+            "parse_text",
+            fake_parse_text,
+        )
+
+        response = await async_client.post(
+            "/api/v1/transactions/parse-and-create",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "text": "кофе за триста пятьдесят",
+                "account_id": str(account.id),
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["amount"] == "350.00"
+        assert data["category_id"] == str(coffee_category.id)
+        assert data["description"] == "кофе"

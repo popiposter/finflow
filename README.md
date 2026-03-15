@@ -41,6 +41,7 @@ FinFlow currently supports:
 - accounts, categories, and actual transaction CRUD
 - transaction patch editing
 - parse-and-create ingestion from free-form text
+- optional Ollama-backed LLM fallback for ambiguous text parsing
 - bulk import of actual transactions from `.xlsx`
 - Telegram bot ingestion for quick expense/income capture
 - planned payment templates
@@ -124,6 +125,7 @@ ruff format .
 - Backend and frontend are intended to run on the same origin in production-style setups.
 - Offline behavior is read-only by design for now; mutations are intentionally blocked without a connection.
 - `.xlsx` import currently expects the first sheet in `date / description / amount` order.
+- LLM parsing is feature-flagged and currently augments `parse-and-create` only when heuristics cannot confidently extract an amount.
 - Telegram bot input is webhook-based: link a chat with `/connect <api_token> [account_id]`, then send plain text like `coffee 350 rub`.
 - Error responses use a normalized envelope so the frontend can localize and map them consistently.
 

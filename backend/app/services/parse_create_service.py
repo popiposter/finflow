@@ -10,13 +10,18 @@ from app.repositories.account_repository import AccountRepository
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.parse_create import ParseAndCreateResponse, ParsedResult
+from app.services.llm_parse_service import LLMParseService
 from app.services.parse_service import parse_text
 
 
 class TransactionParseCreateService:
     """Service for creating transactions from parsed free-form text."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(
+        self,
+        session: AsyncSession,
+        llm_parse_service: LLMParseService | None = None,
+    ):
         """Initialize the service with a database session.
 
         Args:
@@ -26,6 +31,7 @@ class TransactionParseCreateService:
         self.account_repo = AccountRepository(session)
         self.category_repo = CategoryRepository(session)
         self.transaction_repo = TransactionRepository(session)
+        self.llm_parse_service = llm_parse_service or LLMParseService()
 
     async def parse_and_create(
         self,
@@ -48,7 +54,7 @@ class TransactionParseCreateService:
         Raises:
             ValueError: If amount cannot be extracted from text.
         """
-        parsed = parse_text(text)
+        parsed = await self._parse_with_fallback(text)
 
         if parsed.amount is None:
             raise ValueError("Could not extract amount from text")
@@ -118,7 +124,18 @@ class TransactionParseCreateService:
         Returns:
             ParsedResult with extracted fields.
         """
-        return parse_text(text)
+        return await self._parse_with_fallback(text)
+
+    async def _parse_with_fallback(self, text: str) -> ParsedResult:
+        parsed = parse_text(text)
+        if parsed.amount is not None:
+            return parsed
+
+        llm_parsed = await self.llm_parse_service.parse_text(text)
+        if llm_parsed is not None:
+            return llm_parsed
+
+        return parsed
 
 
 __all__ = ["TransactionParseCreateService"]

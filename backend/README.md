@@ -52,6 +52,12 @@ The backend service:
 - runs `uv sync --extra dev` inside the container into an isolated named virtualenv volume
 - applies `alembic upgrade head` before starting Uvicorn
 
+Optional LLM parsing fallback can be enabled with:
+- `OLLAMA_PARSE_ENABLED=true`
+- `OLLAMA_API_KEY=...`
+- `OLLAMA_API_BASE_URL=https://ollama.com/api`
+- `OLLAMA_MODEL=gpt-oss:120b`
+
 If you want to exercise the Telegram bot integration locally, provide:
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_WEBHOOK_SECRET`
