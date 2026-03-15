@@ -11,6 +11,7 @@ const createApiToken = vi.fn();
 const revokeApiToken = vi.fn();
 const listTelegramLinks = vi.fn();
 const disconnectTelegramLink = vi.fn();
+const updateTelegramLink = vi.fn();
 const listAccounts = vi.fn();
 
 vi.mock("@/shared/api/auth", () => ({
@@ -20,6 +21,7 @@ vi.mock("@/shared/api/auth", () => ({
   revokeApiToken: (tokenId: string) => revokeApiToken(tokenId),
   listTelegramLinks: () => listTelegramLinks(),
   disconnectTelegramLink: (linkId: string) => disconnectTelegramLink(linkId),
+  updateTelegramLink: (linkId: string, payload: unknown) => updateTelegramLink(linkId, payload),
 }));
 
 vi.mock("@/shared/api/accounts", () => ({
@@ -104,6 +106,11 @@ describe("TelegramSettingsPage", () => {
       id: "link-1",
       is_active: false,
     });
+    updateTelegramLink.mockResolvedValue({
+      id: "link-1",
+      account_id: "acc-1",
+    });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   it("shows linked chats and lets the user revoke and disconnect", async () => {
@@ -121,5 +128,10 @@ describe("TelegramSettingsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Disconnect" }));
     await waitFor(() => expect(disconnectTelegramLink).toHaveBeenCalledWith("link-1"));
+
+    await user.selectOptions(screen.getByLabelText("Default account"), "acc-1");
+    await waitFor(() =>
+      expect(updateTelegramLink).toHaveBeenCalledWith("link-1", { account_id: "acc-1" }),
+    );
   });
 });

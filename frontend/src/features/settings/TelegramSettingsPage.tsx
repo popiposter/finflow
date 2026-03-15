@@ -11,6 +11,7 @@ import {
   listApiTokens,
   listTelegramLinks,
   revokeApiToken,
+  updateTelegramLink,
 } from "@/shared/api/auth";
 import { listAccounts } from "@/shared/api/accounts";
 import type { ApiTokenWithRawToken } from "@/shared/api/types";
@@ -71,6 +72,18 @@ export function TelegramSettingsPage() {
     },
   });
 
+  const reassignLinkMutation = useMutation({
+    mutationFn: ({ linkId, accountId }: { linkId: string; accountId: string }) =>
+      updateTelegramLink(linkId, { account_id: accountId }),
+    onSuccess: async () => {
+      toast.success(intl.formatMessage({ id: "settings.telegramLinkReassigned" }));
+      await queryClient.invalidateQueries({ queryKey: ["telegram-links"] });
+    },
+    onError: () => {
+      toast.error(intl.formatMessage({ id: "toast.genericError" }));
+    },
+  });
+
   const suggestedCommand = useMemo(() => {
     if (!latestToken) {
       return "";
@@ -85,6 +98,9 @@ export function TelegramSettingsPage() {
     await navigator.clipboard.writeText(value);
     toast.success(intl.formatMessage({ id: successId }));
   };
+
+  const confirmDangerousAction = (messageId: string) =>
+    window.confirm(intl.formatMessage({ id: messageId }));
 
   const telegram = integrationQuery.data?.telegram;
   const accountNameById = useMemo(
@@ -102,7 +118,7 @@ export function TelegramSettingsPage() {
 
       <Card>
         {integrationQuery.isLoading ? (
-          <SkeletonRows count={3} />
+          <SkeletonRows count={5} />
         ) : telegram ? (
           <div className="list-stack">
             <article className="transaction-row">
@@ -110,7 +126,7 @@ export function TelegramSettingsPage() {
                 <div className="transaction-row__title">
                   {intl.formatMessage({ id: "settings.integrationEnabled" })}
                 </div>
-              <div className="transaction-row__meta">
+                <div className="transaction-row__meta">
                   {intl.formatMessage({ id: "settings.telegramEnabledCopy" })}
                 </div>
               </div>
@@ -118,6 +134,38 @@ export function TelegramSettingsPage() {
                 {telegram.enabled
                   ? intl.formatMessage({ id: "settings.statusOn" })
                   : intl.formatMessage({ id: "settings.statusOff" })}
+              </strong>
+            </article>
+
+            <article className="transaction-row">
+              <div>
+                <div className="transaction-row__title">
+                  {intl.formatMessage({ id: "settings.telegramBotTokenStatus" })}
+                </div>
+                <div className="transaction-row__meta">
+                  {intl.formatMessage({ id: "settings.telegramBotTokenCopy" })}
+                </div>
+              </div>
+              <strong>
+                {telegram.bot_token_configured
+                  ? intl.formatMessage({ id: "settings.statusConfigured" })
+                  : intl.formatMessage({ id: "settings.statusMissing" })}
+              </strong>
+            </article>
+
+            <article className="transaction-row">
+              <div>
+                <div className="transaction-row__title">
+                  {intl.formatMessage({ id: "settings.telegramWebhookSecretStatus" })}
+                </div>
+                <div className="transaction-row__meta">
+                  {intl.formatMessage({ id: "settings.telegramWebhookSecretCopy" })}
+                </div>
+              </div>
+              <strong>
+                {telegram.webhook_secret_configured
+                  ? intl.formatMessage({ id: "settings.statusConfigured" })
+                  : intl.formatMessage({ id: "settings.statusMissing" })}
               </strong>
             </article>
 
@@ -135,6 +183,18 @@ export function TelegramSettingsPage() {
                   <span key={command}>{command}</span>
                 ))}
               </div>
+            </article>
+
+            <article className="transaction-row">
+              <div>
+                <div className="transaction-row__title">
+                  {intl.formatMessage({ id: "settings.telegramWebhookPathTitle" })}
+                </div>
+                <div className="transaction-row__meta">
+                  {intl.formatMessage({ id: "settings.telegramWebhookPathCopy" })}
+                </div>
+              </div>
+              <strong>/api/v1/integrations/telegram/webhook/&lt;secret&gt;</strong>
             </article>
           </div>
         ) : null}
@@ -254,7 +314,11 @@ export function TelegramSettingsPage() {
                       type="button"
                       variant="ghost"
                       disabled={revokeTokenMutation.isPending}
-                      onClick={() => revokeTokenMutation.mutate(token.id)}
+                      onClick={() => {
+                        if (confirmDangerousAction("settings.confirmRevokeToken")) {
+                          revokeTokenMutation.mutate(token.id);
+                        }
+                      }}
                     >
                       <Trash2 size={16} />
                       {intl.formatMessage({ id: "settings.revokeToken" })}
@@ -309,6 +373,25 @@ export function TelegramSettingsPage() {
                         )
                       : intl.formatMessage({ id: "settings.telegramLastSeenNever" })}
                   </div>
+                  <label className="field">
+                    <span>{intl.formatMessage({ id: "settings.telegramReassignAccount" })}</span>
+                    <select
+                      value={link.account_id}
+                      disabled={!link.is_active || reassignLinkMutation.isPending}
+                      onChange={(event) =>
+                        reassignLinkMutation.mutate({
+                          linkId: link.id,
+                          accountId: event.target.value,
+                        })
+                      }
+                    >
+                      {accountsQuery.data?.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
                 <div className="transaction-row__actions">
                   <strong>
@@ -321,7 +404,11 @@ export function TelegramSettingsPage() {
                       type="button"
                       variant="ghost"
                       disabled={disconnectLinkMutation.isPending}
-                      onClick={() => disconnectLinkMutation.mutate(link.id)}
+                      onClick={() => {
+                        if (confirmDangerousAction("settings.confirmDisconnectChat")) {
+                          disconnectLinkMutation.mutate(link.id);
+                        }
+                      }}
                     >
                       <PowerOff size={16} />
                       {intl.formatMessage({ id: "settings.disconnectChat" })}

@@ -60,6 +60,13 @@ export function disconnectTelegramLink(linkId: string) {
   });
 }
 
+export function updateTelegramLink(linkId: string, payload: { account_id: string }) {
+  return apiFetch<TelegramChatLink>(`/auth/telegram-links/${linkId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function getIntegrationStatus() {
   return apiFetch<IntegrationStatusResponse>("/health/integrations");
 }

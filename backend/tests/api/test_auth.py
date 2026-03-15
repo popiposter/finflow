@@ -409,3 +409,47 @@ class TestApiTokensEndpoints:
 
         assert disconnect_response.status_code == 200
         assert disconnect_response.json()["is_active"] is False
+
+    async def test_update_telegram_link_account(self, async_client: AsyncClient) -> None:
+        register = await async_client.post(
+            "/api/v1/auth/register",
+            json={"email": "tg-reassign@example.com", "password": "SecurePass123!"},
+        )
+        user_id = register.json()["id"]
+        login_response = await async_client.post(
+            "/api/v1/auth/login",
+            json={"email": "tg-reassign@example.com", "password": "SecurePass123!"},
+        )
+        access_token = login_response.json()["access_token"]
+
+        async with async_session_factory() as session:
+            account_repo = AccountRepository(session)
+            link_repo = TelegramChatLinkRepository(session)
+            first_account = await account_repo.create(
+                user_id=user_id,
+                name="Primary",
+                type_=AccountType.CHECKING,
+            )
+            second_account = await account_repo.create(
+                user_id=user_id,
+                name="Cash",
+                type_=AccountType.CASH,
+            )
+            link = await link_repo.upsert(
+                user_id=user_id,
+                account_id=first_account.id,
+                chat_id=701002,
+                telegram_user_id=9002,
+                username="telegram_user_2",
+                first_name="Flow",
+            )
+            await session.commit()
+
+        response = await async_client.patch(
+            f"/api/v1/auth/telegram-links/{link.id}",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={"account_id": str(second_account.id)},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["account_id"] == str(second_account.id)

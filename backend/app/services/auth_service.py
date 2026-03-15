@@ -13,6 +13,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.repositories.account_repository import AccountRepository
 from app.repositories.api_token_repository import ApiTokenRepository
 from app.repositories.refresh_session_repository import RefreshSessionRepository
 from app.repositories.user_repository import UserRepository
@@ -31,6 +32,7 @@ class AuthService:
         """
         self.session = session
         self.user_repo = UserRepository(session)
+        self.account_repo = AccountRepository(session)
         self.api_token_repo = ApiTokenRepository(session)
         self.refresh_session_repo = RefreshSessionRepository(session)
         self.telegram_link_repo = TelegramChatLinkRepository(session)
@@ -226,6 +228,26 @@ class AuthService:
         if link is None:
             raise ValueError("Telegram chat link not found")
         await self.telegram_link_repo.deactivate(link)
+        return TelegramChatLinkOut.model_validate(link)
+
+    async def update_telegram_link_account(
+        self,
+        user_id: UUID,
+        link_id: UUID,
+        account_id: UUID,
+    ) -> TelegramChatLinkOut:
+        """Reassign the default account for a Telegram chat link."""
+        link = await self.telegram_link_repo.get_by_id_for_user(link_id, user_id)
+        if link is None:
+            raise ValueError("Telegram chat link not found")
+
+        account = await self.account_repo.get_by_id(account_id)
+        if account is None or account.user_id != user_id:
+            raise ValueError("Account not found")
+
+        link.account_id = account.id
+        await self.session.flush()
+        await self.session.refresh(link)
         return TelegramChatLinkOut.model_validate(link)
 
     def _create_access_token(self, user_id: UUID) -> str:

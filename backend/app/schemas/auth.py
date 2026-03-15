@@ -99,6 +99,12 @@ class TelegramChatLinkOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class TelegramChatLinkUpdate(BaseModel):
+    """Schema for changing the default account on a linked Telegram chat."""
+
+    account_id: UUID
+
+
 class TelegramIntegrationStatus(BaseModel):
     """Public runtime status for Telegram integration."""
 

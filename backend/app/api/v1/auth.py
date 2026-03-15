@@ -16,6 +16,7 @@ from app.schemas.auth import (
     ApiTokenOutWithToken,
     LoginRequest,
     TelegramChatLinkOut,
+    TelegramChatLinkUpdate,
     Token,
     TokenRefresh,
     UserCreate,
@@ -241,5 +242,31 @@ async def disconnect_telegram_link(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+
+
+@router.patch("/telegram-links/{link_id}", response_model=TelegramChatLinkOut)
+async def update_telegram_link(
+    link_id: UUID,
+    payload: TelegramChatLinkUpdate,
+    user: UserOut = Depends(get_current_user),
+    service: AuthService = Depends(get_auth_service),
+) -> TelegramChatLinkOut:
+    """Update the default account for one Telegram chat link."""
+    try:
+        return await service.update_telegram_link_account(
+            user.id,
+            link_id,
+            payload.account_id,
+        )
+    except ValueError as e:
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if str(e) in {"Telegram chat link not found", "Account not found"}
+            else status.HTTP_400_BAD_REQUEST
+        )
+        raise HTTPException(
+            status_code=status_code,
             detail=str(e),
         ) from e
