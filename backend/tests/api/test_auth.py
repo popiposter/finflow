@@ -12,7 +12,11 @@ These tests verify that the auth endpoints work correctly:
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.db.session import async_session_factory
 from app.main import app
+from app.models.types import AccountType
+from app.repositories.account_repository import AccountRepository
+from app.repositories.telegram_chat_link_repository import TelegramChatLinkRepository
 
 pytestmark = pytest.mark.api
 
@@ -330,3 +334,78 @@ class TestApiTokensEndpoints:
         )
 
         assert response.status_code == 401
+
+    async def test_revoke_api_token_success(self, async_client: AsyncClient) -> None:
+        await async_client.post(
+            "/api/v1/auth/register",
+            json={"email": "revoke-token@example.com", "password": "SecurePass123!"},
+        )
+        login_response = await async_client.post(
+            "/api/v1/auth/login",
+            json={"email": "revoke-token@example.com", "password": "SecurePass123!"},
+        )
+        access_token = login_response.json()["access_token"]
+
+        create_response = await async_client.post(
+            "/api/v1/auth/api-tokens",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={"name": "Revokable Token"},
+        )
+        token_id = create_response.json()["id"]
+
+        response = await async_client.delete(
+            f"/api/v1/auth/api-tokens/{token_id}",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["is_revoked"] is True
+
+    async def test_list_and_disconnect_telegram_links(self, async_client: AsyncClient) -> None:
+        register = await async_client.post(
+            "/api/v1/auth/register",
+            json={"email": "tg-links@example.com", "password": "SecurePass123!"},
+        )
+        user_id = register.json()["id"]
+        login_response = await async_client.post(
+            "/api/v1/auth/login",
+            json={"email": "tg-links@example.com", "password": "SecurePass123!"},
+        )
+        access_token = login_response.json()["access_token"]
+
+        async with async_session_factory() as session:
+            account_repo = AccountRepository(session)
+            link_repo = TelegramChatLinkRepository(session)
+            account = await account_repo.create(
+                user_id=user_id,
+                name="Telegram Default",
+                type_=AccountType.CHECKING,
+            )
+            await link_repo.upsert(
+                user_id=user_id,
+                account_id=account.id,
+                chat_id=701001,
+                telegram_user_id=9001,
+                username="telegram_user",
+                first_name="Tele",
+            )
+            await session.commit()
+
+        list_response = await async_client.get(
+            "/api/v1/auth/telegram-links",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        assert list_response.status_code == 200
+        links = list_response.json()
+        assert len(links) == 1
+        assert links[0]["chat_id"] == 701001
+        assert links[0]["is_active"] is True
+
+        disconnect_response = await async_client.delete(
+            f"/api/v1/auth/telegram-links/{links[0]['id']}",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        assert disconnect_response.status_code == 200
+        assert disconnect_response.json()["is_active"] is False

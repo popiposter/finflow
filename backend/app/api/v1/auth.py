@@ -1,5 +1,7 @@
 """Authentication API routes."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.api.dependencies.auth import get_auth_service, get_current_user
@@ -13,6 +15,7 @@ from app.schemas.auth import (
     ApiTokenOut,
     ApiTokenOutWithToken,
     LoginRequest,
+    TelegramChatLinkOut,
     Token,
     TokenRefresh,
     UserCreate,
@@ -199,3 +202,44 @@ async def list_api_tokens(
         List of active API tokens.
     """
     return await service.list_api_tokens(user.id)
+
+
+@router.delete("/api-tokens/{token_id}", response_model=ApiTokenOut)
+async def revoke_api_token(
+    token_id: UUID,
+    user: UserOut = Depends(get_current_user),
+    service: AuthService = Depends(get_auth_service),
+) -> ApiTokenOut:
+    """Revoke one API token owned by the current user."""
+    try:
+        return await service.revoke_api_token(user.id, token_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+
+
+@router.get("/telegram-links", response_model=list[TelegramChatLinkOut])
+async def list_telegram_links(
+    user: UserOut = Depends(get_current_user),
+    service: AuthService = Depends(get_auth_service),
+) -> list[TelegramChatLinkOut]:
+    """List Telegram chat links for the current user."""
+    return await service.list_telegram_links(user.id)
+
+
+@router.delete("/telegram-links/{link_id}", response_model=TelegramChatLinkOut)
+async def disconnect_telegram_link(
+    link_id: UUID,
+    user: UserOut = Depends(get_current_user),
+    service: AuthService = Depends(get_auth_service),
+) -> TelegramChatLinkOut:
+    """Disconnect one Telegram chat link owned by the current user."""
+    try:
+        return await service.disconnect_telegram_link(user.id, link_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e

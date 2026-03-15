@@ -5,6 +5,7 @@ import type {
   IntegrationStatusResponse,
   LoginInput,
   RegisterInput,
+  TelegramChatLink,
   User,
 } from "@/shared/api/types";
 
@@ -40,6 +41,22 @@ export function createApiToken(payload: { name: string }) {
   return apiFetch<ApiTokenWithRawToken>("/auth/api-tokens", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function revokeApiToken(tokenId: string) {
+  return apiFetch<ApiToken>(`/auth/api-tokens/${tokenId}`, {
+    method: "DELETE",
+  });
+}
+
+export function listTelegramLinks() {
+  return apiFetch<TelegramChatLink[]>("/auth/telegram-links");
+}
+
+export function disconnectTelegramLink(linkId: string) {
+  return apiFetch<TelegramChatLink>(`/auth/telegram-links/${linkId}`, {
+    method: "DELETE",
   });
 }
 

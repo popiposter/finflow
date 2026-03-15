@@ -81,6 +81,24 @@ class ApiTokenOutWithToken(ApiTokenOut):
     raw_token: str
 
 
+class TelegramChatLinkOut(BaseModel):
+    """Schema for Telegram chat link responses."""
+
+    id: UUID
+    user_id: UUID
+    account_id: UUID
+    chat_id: int
+    telegram_user_id: int | None
+    username: str | None
+    first_name: str | None
+    is_active: bool
+    last_seen_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class TelegramIntegrationStatus(BaseModel):
     """Public runtime status for Telegram integration."""
 

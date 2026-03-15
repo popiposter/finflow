@@ -50,6 +50,20 @@ export type ApiTokenWithRawToken = ApiToken & {
   raw_token: string;
 };
 
+export type TelegramChatLink = {
+  id: UUID;
+  user_id: UUID;
+  account_id: UUID;
+  chat_id: number;
+  telegram_user_id: number | null;
+  username: string | null;
+  first_name: string | null;
+  is_active: boolean;
+  last_seen_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type LoginInput = {
   email: string;
   password: string;

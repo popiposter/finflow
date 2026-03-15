@@ -16,7 +16,8 @@ from app.core.security import (
 from app.repositories.api_token_repository import ApiTokenRepository
 from app.repositories.refresh_session_repository import RefreshSessionRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import ApiTokenCreate, ApiTokenOut, UserCreate, UserOut
+from app.repositories.telegram_chat_link_repository import TelegramChatLinkRepository
+from app.schemas.auth import ApiTokenCreate, ApiTokenOut, TelegramChatLinkOut, UserCreate, UserOut
 
 
 class AuthService:
@@ -32,6 +33,7 @@ class AuthService:
         self.user_repo = UserRepository(session)
         self.api_token_repo = ApiTokenRepository(session)
         self.refresh_session_repo = RefreshSessionRepository(session)
+        self.telegram_link_repo = TelegramChatLinkRepository(session)
 
     async def register(self, user_data: UserCreate) -> UserOut:
         """Register a new user.
@@ -204,6 +206,27 @@ class AuthService:
         """
         tokens = await self.api_token_repo.get_active_by_user(user_id)
         return [ApiTokenOut.model_validate(token) for token in tokens]
+
+    async def revoke_api_token(self, user_id: UUID, token_id: UUID) -> ApiTokenOut:
+        """Revoke one of the user's API tokens."""
+        token = await self.api_token_repo.get_by_id_for_user(token_id, user_id)
+        if token is None:
+            raise ValueError("API token not found")
+        await self.api_token_repo.revoke(token)
+        return ApiTokenOut.model_validate(token)
+
+    async def list_telegram_links(self, user_id: UUID) -> list[TelegramChatLinkOut]:
+        """List Telegram chat links for the user."""
+        links = await self.telegram_link_repo.list_by_user(user_id)
+        return [TelegramChatLinkOut.model_validate(link) for link in links]
+
+    async def disconnect_telegram_link(self, user_id: UUID, link_id: UUID) -> TelegramChatLinkOut:
+        """Disconnect a Telegram chat link owned by the user."""
+        link = await self.telegram_link_repo.get_by_id_for_user(link_id, user_id)
+        if link is None:
+            raise ValueError("Telegram chat link not found")
+        await self.telegram_link_repo.deactivate(link)
+        return TelegramChatLinkOut.model_validate(link)
 
     def _create_access_token(self, user_id: UUID) -> str:
         """Create an access token for a user.

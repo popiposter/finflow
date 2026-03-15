@@ -1,6 +1,7 @@
 """Repository for Telegram chat link persistence."""
 
 from datetime import datetime, timezone
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -72,3 +73,21 @@ class TelegramChatLinkRepository:
         link.last_seen_at = datetime.now(timezone.utc)
         await self.session.flush()
         return link
+
+    async def list_by_user(self, user_id: UUID) -> list[TelegramChatLink]:
+        """List Telegram chat links for a user, newest first."""
+        stmt = (
+            select(TelegramChatLink)
+            .where(TelegramChatLink.user_id == user_id)
+            .order_by(TelegramChatLink.created_at.desc())
+        )
+        result = await self.session.scalars(stmt)
+        return list(result.all())
+
+    async def get_by_id_for_user(self, link_id: UUID, user_id: UUID) -> TelegramChatLink | None:
+        """Return a chat link by id if it belongs to the user."""
+        stmt = select(TelegramChatLink).where(
+            TelegramChatLink.id == link_id,
+            TelegramChatLink.user_id == user_id,
+        )
+        return cast(TelegramChatLink | None, await self.session.scalar(stmt))

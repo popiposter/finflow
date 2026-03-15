@@ -1,6 +1,7 @@
 """API token repository for database access."""
 
 from datetime import datetime, timezone
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -125,6 +126,14 @@ class ApiTokenRepository:
         token.is_revoked = True
         await self.session.flush()
         return token
+
+    async def get_by_id_for_user(self, token_id: UUID, user_id: UUID) -> ApiToken | None:
+        """Return a token by id if it belongs to the given user."""
+        stmt = select(ApiToken).where(
+            ApiToken.id == token_id,
+            ApiToken.user_id == user_id,
+        )
+        return cast(ApiToken | None, await self.session.scalar(stmt))
 
     async def mark_used(self, token: ApiToken, now: datetime | None = None) -> ApiToken:
         """Update the last_used_at timestamp for a token.
