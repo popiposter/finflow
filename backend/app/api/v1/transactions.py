@@ -3,9 +3,11 @@
 from typing import AsyncGenerator
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 
 from app.api.dependencies.auth import get_current_user
+from app.core.config import settings
+from app.core.rate_limit import build_rate_limit_key, rate_limiter
 from app.exceptions import TransactionNotFoundError
 from app.repositories.account_repository import AccountRepository
 from app.repositories.category_repository import CategoryRepository
@@ -27,6 +29,15 @@ from app.services.transaction_import_service import TransactionImportService
 from app.services.transaction_service import TransactionService
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
+
+
+def enforce_parse_rate_limit(request: Request) -> None:
+    """Rate-limit parse-and-create attempts per client IP."""
+    rate_limiter.check(
+        build_rate_limit_key(request, "parse"),
+        limit=settings.parse_rate_limit_requests,
+        window_seconds=settings.parse_rate_limit_window_seconds,
+    )
 
 
 async def get_parse_create_service() -> AsyncGenerator[
@@ -153,9 +164,11 @@ async def get_category_repo(
     },
 )
 async def parse_and_create(
+    http_request: Request,
     request: ParseRequest,
     current_user: UserOut = Depends(get_current_user),
     service: TransactionParseCreateService = Depends(get_parse_create_service),
+    _: None = Depends(enforce_parse_rate_limit),
 ) -> ParseAndCreateResponse:
     """Parse free-form text and create a transaction.
 

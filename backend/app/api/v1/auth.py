@@ -10,6 +10,8 @@ from app.core.auth_cookies import (
     set_access_cookie,
     set_refresh_cookie,
 )
+from app.core.config import settings
+from app.core.rate_limit import build_rate_limit_key, rate_limiter
 from app.schemas.auth import (
     ApiTokenCreate,
     ApiTokenOut,
@@ -27,10 +29,21 @@ from app.services.auth_service import AuthService
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
+def enforce_auth_rate_limit(request: Request) -> None:
+    """Rate-limit unauthenticated auth endpoints per client IP."""
+    rate_limiter.check(
+        build_rate_limit_key(request, "auth"),
+        limit=settings.auth_rate_limit_requests,
+        window_seconds=settings.auth_rate_limit_window_seconds,
+    )
+
+
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 async def register(
+    request: Request,
     user_data: UserCreate,
     service: AuthService = Depends(get_auth_service),
+    _: None = Depends(enforce_auth_rate_limit),
 ) -> UserOut:
     """Register a new user.
 
@@ -56,9 +69,11 @@ async def register(
 
 @router.post("/login", response_model=Token)
 async def login(
+    request: Request,
     response: Response,
     login_data: LoginRequest,
     service: AuthService = Depends(get_auth_service),
+    _: None = Depends(enforce_auth_rate_limit),
 ) -> Token:
     """Authenticate a user and set cookies.
 
@@ -94,6 +109,7 @@ async def refresh(
     response: Response,
     request: Request,
     service: AuthService = Depends(get_auth_service),
+    _: None = Depends(enforce_auth_rate_limit),
 ) -> TokenRefresh:
     """Refresh authentication tokens.
 

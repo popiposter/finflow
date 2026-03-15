@@ -13,6 +13,7 @@ from starlette.testclient import TestClient
 import app.models  # noqa: F401
 from app.db import Base, async_session_factory, engine
 from app.main import app
+from app.core.rate_limit import rate_limiter
 from app.models.account import Account
 from app.models.category import Category
 from app.models.user import User
@@ -24,6 +25,14 @@ def client(prepare_database: None) -> Generator[TestClient, None, None]:
     """Create a synchronous test client."""
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter() -> Generator[None, None, None]:
+    """Ensure in-memory rate limiting state does not leak across tests."""
+    rate_limiter.reset()
+    yield
+    rate_limiter.reset()
 
 
 @pytest_asyncio.fixture

@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     app_title: str = "FinFlow Backend"
     app_version: str = "0.1.0"
     debug: bool = False
+    request_id_header: str = "X-Request-ID"
 
     # Database
     database_url: Annotated[str, "PostgreSQL connection URL"] = (
@@ -25,7 +26,7 @@ class Settings(BaseSettings):
     )
 
     # JWT
-    jwt_secret_key: str = "change-me-in-production"
+    jwt_secret_key: str = "change-me-in-production-min-32-bytes"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
@@ -45,6 +46,12 @@ class Settings(BaseSettings):
     # Telegram bot integration
     telegram_bot_token: str | None = None
     telegram_webhook_secret: str = "change-me-telegram-webhook-secret"
+    auth_rate_limit_requests: int = 10
+    auth_rate_limit_window_seconds: int = 60
+    parse_rate_limit_requests: int = 20
+    parse_rate_limit_window_seconds: int = 60
+    telegram_rate_limit_requests: int = 30
+    telegram_rate_limit_window_seconds: int = 60
 
     @property
     def is_production(self) -> bool:

@@ -17,6 +17,14 @@ def test_scheduler_health_endpoint(client: TestClient) -> None:
     assert data["next_run"] is not None
 
 
+def test_health_includes_request_id_header(client: TestClient) -> None:
+    """Health responses should carry a request ID header."""
+    response = client.get("/api/v1/health")
+
+    assert response.status_code == 200
+    assert response.headers["X-Request-ID"]
+
+
 def test_integrations_health_endpoint(client: TestClient) -> None:
     """Test integrations health exposes safe public config state."""
     response = client.get("/api/v1/health/integrations")

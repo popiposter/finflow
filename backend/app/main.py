@@ -17,6 +17,7 @@ from app.core.error_handlers import (
     normalize_unhandled_error,
     request_validation_exception_handler,
 )
+from app.core.request_context import request_context_middleware
 from app.exceptions import AppDomainError
 from app.scheduler import ProjectionSchedulerManager
 
@@ -43,6 +44,7 @@ def create_app() -> FastAPI:
     )
 
     app.state.scheduler_manager = ProjectionSchedulerManager()
+    app.middleware("http")(request_context_middleware)
     app.include_router(router)
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
@@ -59,9 +61,10 @@ async def unhandled_exception_handler(
     """Return a safe JSON payload for unexpected server errors."""
     status_code, code, message = normalize_unhandled_error(exc)
     logger.exception(
-        "Unhandled server error during %s %s",
+        "Unhandled server error during %s %s request_id=%s",
         request.method,
         request.url.path,
+        getattr(request.state, "request_id", None),
         exc_info=exc,
     )
     return build_error_response(
