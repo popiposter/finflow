@@ -26,6 +26,7 @@
 - Show once to user.
 - Store only hash in DB.
 - Support revoke and `last_used_at`.
+- Allow non-browser automation clients, including iOS Shortcut and Telegram chat linking.
 
 ## Required tests
 - Password hash/verify.

@@ -47,6 +47,13 @@ from app.schemas.parse_create import (
     ParseRequest,
     TransactionCreateRequest,
 )
+from app.schemas.telegram import (
+    TelegramChat,
+    TelegramMessage,
+    TelegramUpdate,
+    TelegramUser,
+    TelegramWebhookResponse,
+)
 
 __all__ = [
     # Auth
@@ -94,4 +101,10 @@ __all__ = [
     "TransactionCreateRequest",
     "ParseAndCreateResponse",
     "ParseErrorResponse",
+    # Telegram
+    "TelegramUser",
+    "TelegramChat",
+    "TelegramMessage",
+    "TelegramUpdate",
+    "TelegramWebhookResponse",
 ]

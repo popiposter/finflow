@@ -10,7 +10,7 @@ Implement secure user authentication for web and API access.
 - cookie helpers
 - auth service
 - login / refresh / logout endpoints
-- long-lived API tokens for iOS Shortcut
+- long-lived API tokens for iOS Shortcut and Telegram chat linking
 - auth tests
 
 ## Required modules
@@ -31,7 +31,7 @@ Implement secure user authentication for web and API access.
 - JWT created with PyJWT.
 - Claims must include `sub`, `type`, `exp`, `iat`; add `jti` when useful.
 - Web tokens go to HttpOnly Secure cookies.
-- API token for Shortcut is generated once, shown once, stored hashed only.
+- API token for Shortcut or Telegram linking is generated once, shown once, stored hashed only.
 - Support token revocation and `last_used_at`.
 
 ## Cookie rules
