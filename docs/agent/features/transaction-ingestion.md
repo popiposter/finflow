@@ -13,11 +13,13 @@ stored transaction.
 - optional Ollama LLM fallback parser for ambiguous text
 - endpoint for iOS Shortcut ingestion
 - endpoint for `.xlsx` batch import into actual transactions
+- Telegram bot webhook ingestion that reuses the same parse-and-create service
 - tests for happy path, invalid input, auth, and real persistence behavior
 
 ## Primary endpoint
 - `POST /api/v1/transactions/parse-and-create`
 - `POST /api/v1/transactions/import`
+- `POST /api/v1/integrations/telegram/webhook/{secret}`
 
 ## Input contract
 Current request body:
@@ -32,6 +34,13 @@ Bulk import contract:
 - first sheet interpreted as `date`, `description`, `amount`
 - negative amount -> expense, positive amount -> income
 - response summarizes imported IDs plus skipped row errors
+
+Telegram bot contract:
+- webhook receives Telegram `message.text`
+- `/connect <api_token> [account_id]` links a chat to a user/account
+- `/status` reports current link
+- `/disconnect` deactivates current link
+- plain text after linking creates an actual transaction in the linked account
 
 ## Parsing rules
 - Extract amount from text using regex/heuristics.
@@ -51,6 +60,7 @@ Bulk import contract:
 - LLM integration must stay behind config flags and return strict JSON validated by Pydantic before any persistence.
 - Validate real account/category ownership before persisting.
 - Use authenticated DB lookups for account and optional category before creating the transaction.
+- Telegram linking must validate the API token and selected account ownership before persisting a chat link.
 - For workbook import, validate the selected account once before row ingestion and report row-level parse issues without failing the whole file.
 - API errors should use the normalized envelope with stable codes for frontend localization.
 
@@ -71,3 +81,4 @@ Bulk import contract:
 - Parser can infer simple `income` and `refund` cases from high-confidence keywords.
 - If category text matches an existing user category, the persisted transaction should attach it.
 - Workbook import covers success path, foreign-account rejection, and invalid-file rejection.
+- Telegram webhook covers link happy path, invalid token handling, and plain-text capture after linking.

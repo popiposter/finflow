@@ -14,6 +14,9 @@ Backend feature foundation is in place, and the frontend now has a mobile-first 
 - Authentication foundation: `User`, `ApiToken`, `RefreshSession`, auth service, auth routes, and tests.
 - Core finance domain: accounts, categories, transactions, repositories, schemas, and migrations.
 - Transaction ingestion from free-form text with authenticated parse-and-create flow, stronger parser heuristics for multiple numbers/type inference, feature-flagged Ollama LLM fallback for ambiguous text, API persistence coverage, and `.xlsx` bulk import into actual transactions for a chosen account.
+- Telegram bot ingestion: webhook-based chat linking through existing API tokens plus plain-text transaction capture into a selected account.
+- Transaction ingestion from free-form text with authenticated parse-and-create flow, stronger parser heuristics for multiple numbers/type inference, feature-flagged Ollama LLM fallback for ambiguous text, API persistence coverage, and `.xlsx` bulk import into actual transactions for a chosen account.
+- Telegram bot ingestion: webhook-based chat linking through existing API tokens plus plain-text transaction capture into a selected account.
 - Planned payments Stage 3: template-first model/CRUD semantics, projection-based lifecycle cleanup, and audit-only linkage from actual transactions.
 - Projected transactions Stage 1: model with status lifecycle, forecast layer between planned payments and transactions, and API endpoints for projection management.
 - Projection scheduler Stage 1: scheduled generation of pending projected transactions from planned-payment templates and scheduler health endpoint.
@@ -36,6 +39,5 @@ Backend feature foundation is in place, and the frontend now has a mobile-first 
 - Reporting refinement after product feedback on response shapes and aggregation semantics.
 - Transaction editing refinement only if product later needs broader mutable fields such as `type`.
 - Additional API and integration coverage only where the roadmap explicitly calls for it.
-- Product refinement based on future feedback, especially around optional default-account selection.
-- LLM expansion candidates after parse fallback: Telegram assistant wiring, category suggestion, and report explanations.
+- Product refinement based on future feedback, especially around optional default-account selection, richer chat-based ingestion UX, and LLM-assisted category/reporting workflows.
 - Keep process guidance compact and prefer scripts plus docs over long ritual prompts.

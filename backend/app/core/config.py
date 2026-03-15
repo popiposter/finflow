@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     ollama_timeout_seconds: float = 20.0
     ollama_parse_min_confidence: float = 0.75
 
+    # Telegram bot integration
+    telegram_bot_token: str | None = None
+    telegram_webhook_secret: str = "change-me-telegram-webhook-secret"
+
     @property
     def is_production(self) -> bool:
         """Check if running in production mode."""

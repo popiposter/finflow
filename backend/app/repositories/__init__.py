@@ -7,6 +7,7 @@ from app.repositories.planned_payment_repository import PlannedPaymentRepository
 from app.repositories.projected_transaction_repository import ProjectedTransactionRepository
 from app.repositories.refresh_session_repository import RefreshSessionRepository
 from app.repositories.report_repository import ReportRepository
+from app.repositories.telegram_chat_link_repository import TelegramChatLinkRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.repositories.user_repository import UserRepository
 
@@ -19,5 +20,6 @@ __all__ = [
     "PlannedPaymentRepository",
     "ProjectedTransactionRepository",
     "ReportRepository",
+    "TelegramChatLinkRepository",
     "TransactionRepository",
 ]

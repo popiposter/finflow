@@ -58,6 +58,22 @@ Optional LLM parsing fallback can be enabled with:
 - `OLLAMA_API_BASE_URL=https://ollama.com/api`
 - `OLLAMA_MODEL=gpt-oss:120b`
 
+If you want to exercise the Telegram bot integration locally, provide:
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_WEBHOOK_SECRET`
+
+The webhook endpoint is:
+
+```text
+POST /api/v1/integrations/telegram/webhook/{TELEGRAM_WEBHOOK_SECRET}
+```
+
+The current bot MVP supports:
+- `/connect <api_token> [account_id]`
+- `/status`
+- `/disconnect`
+- plain text transaction capture after linking
+
 When dependencies change, restart the service or rerun `docker compose up --build`. When only Python source changes, `--reload` picks them up automatically.
 
 ## Practical lessons

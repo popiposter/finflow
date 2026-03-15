@@ -11,6 +11,7 @@ from app.api.v1 import (
     planned_payments,
     projected_transactions,
     reports,
+    telegram,
     transactions,
 )
 
@@ -25,3 +26,4 @@ router.include_router(cashflow.router)
 router.include_router(planned_payments.router)
 router.include_router(projected_transactions.router)
 router.include_router(reports.router)
+router.include_router(telegram.router)
