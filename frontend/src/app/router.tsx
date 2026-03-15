@@ -12,7 +12,9 @@ import { ProjectionsPage } from "@/features/projections/ProjectionsPage";
 import { ReportsPage } from "@/features/reports/ReportsPage";
 import { AccountsSettingsPage } from "@/features/settings/AccountsSettingsPage";
 import { CategoriesSettingsPage } from "@/features/settings/CategoriesSettingsPage";
+import { OllamaSettingsPage } from "@/features/settings/OllamaSettingsPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
+import { TelegramSettingsPage } from "@/features/settings/TelegramSettingsPage";
 import { TransactionsPage } from "@/features/transactions/TransactionsPage";
 
 export function AppRouter() {
@@ -37,6 +39,8 @@ export function AppRouter() {
             <Route index element={<SettingsPage />} />
             <Route path="accounts" element={<AccountsSettingsPage />} />
             <Route path="categories" element={<CategoriesSettingsPage />} />
+            <Route path="telegram" element={<TelegramSettingsPage />} />
+            <Route path="ollama" element={<OllamaSettingsPage />} />
           </Route>
         </Route>
       </Route>

@@ -1,5 +1,12 @@
 import { apiFetch } from "@/shared/api/client";
-import type { LoginInput, RegisterInput, User } from "@/shared/api/types";
+import type {
+  ApiToken,
+  ApiTokenWithRawToken,
+  IntegrationStatusResponse,
+  LoginInput,
+  RegisterInput,
+  User,
+} from "@/shared/api/types";
 
 export function registerUser(payload: RegisterInput) {
   return apiFetch<User>("/auth/register", {
@@ -23,4 +30,19 @@ export function logoutCurrentSession() {
   return apiFetch<{ message: string }>("/auth/logout", {
     method: "POST",
   });
+}
+
+export function listApiTokens() {
+  return apiFetch<ApiToken[]>("/auth/api-tokens");
+}
+
+export function createApiToken(payload: { name: string }) {
+  return apiFetch<ApiTokenWithRawToken>("/auth/api-tokens", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getIntegrationStatus() {
+  return apiFetch<IntegrationStatusResponse>("/health/integrations");
 }

@@ -36,6 +36,20 @@ export type User = {
   is_active: boolean;
 };
 
+export type ApiToken = {
+  id: UUID;
+  user_id: UUID;
+  name: string;
+  created_at: string;
+  last_used_at: string | null;
+  expires_at: string;
+  is_revoked: boolean;
+};
+
+export type ApiTokenWithRawToken = ApiToken & {
+  raw_token: string;
+};
+
 export type LoginInput = {
   email: string;
   password: string;
@@ -292,4 +306,24 @@ export type ApiErrorShape = {
   error?: ApiErrorDetail | string;
   detail?: string;
   message?: string;
+};
+
+export type TelegramIntegrationStatus = {
+  enabled: boolean;
+  bot_token_configured: boolean;
+  webhook_secret_configured: boolean;
+  commands: string[];
+};
+
+export type OllamaIntegrationStatus = {
+  enabled: boolean;
+  api_key_configured: boolean;
+  base_url: string;
+  model: string;
+  min_confidence: number;
+};
+
+export type IntegrationStatusResponse = {
+  telegram: TelegramIntegrationStatus;
+  ollama: OllamaIntegrationStatus;
 };

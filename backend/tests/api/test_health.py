@@ -15,3 +15,15 @@ def test_scheduler_health_endpoint(client: TestClient) -> None:
     data = response.json()
     assert data["status"] == "running"
     assert data["next_run"] is not None
+
+
+def test_integrations_health_endpoint(client: TestClient) -> None:
+    """Test integrations health exposes safe public config state."""
+    response = client.get("/api/v1/health/integrations")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "telegram" in data
+    assert "ollama" in data
+    assert "commands" in data["telegram"]
+    assert "model" in data["ollama"]

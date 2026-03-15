@@ -79,3 +79,29 @@ class ApiTokenOutWithToken(ApiTokenOut):
     """
 
     raw_token: str
+
+
+class TelegramIntegrationStatus(BaseModel):
+    """Public runtime status for Telegram integration."""
+
+    enabled: bool
+    bot_token_configured: bool
+    webhook_secret_configured: bool
+    commands: list[str]
+
+
+class OllamaIntegrationStatus(BaseModel):
+    """Public runtime status for Ollama-backed parsing."""
+
+    enabled: bool
+    api_key_configured: bool
+    base_url: str
+    model: str
+    min_confidence: float
+
+
+class IntegrationStatusResponse(BaseModel):
+    """Public runtime status for supported integrations."""
+
+    telegram: TelegramIntegrationStatus
+    ollama: OllamaIntegrationStatus

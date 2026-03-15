@@ -1,4 +1,4 @@
-import { ChevronRight, LogOut } from "lucide-react";
+import { Bot, ChevronRight, LogOut, MessageCircleMore } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -59,6 +59,34 @@ export function SettingsPage() {
               </div>
             </div>
             <ChevronRight size={18} />
+          </Link>
+        </Card>
+
+        <Card>
+          <Link className="settings-link" to="/settings/telegram">
+            <div>
+              <div className="settings-link__title">
+                {intl.formatMessage({ id: "settings.telegramTitle" })}
+              </div>
+              <div className="settings-link__copy">
+                {intl.formatMessage({ id: "settings.telegramCardCopy" })}
+              </div>
+            </div>
+            <MessageCircleMore size={18} />
+          </Link>
+        </Card>
+
+        <Card>
+          <Link className="settings-link" to="/settings/ollama">
+            <div>
+              <div className="settings-link__title">
+                {intl.formatMessage({ id: "settings.ollamaTitle" })}
+              </div>
+              <div className="settings-link__copy">
+                {intl.formatMessage({ id: "settings.ollamaCardCopy" })}
+              </div>
+            </div>
+            <Bot size={18} />
           </Link>
         </Card>
       </div>

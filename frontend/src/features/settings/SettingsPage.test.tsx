@@ -33,10 +33,12 @@ describe("SettingsPage", () => {
     renderWithProviders(<SettingsPage />);
 
     expect(screen.getByRole("heading", { name: "Language" })).toBeInTheDocument();
+    expect(screen.getByText("Telegram bot")).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("Language"), "ru");
 
     expect(screen.getByRole("heading", { name: "Язык" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Выйти" })).toBeInTheDocument();
+    expect(screen.getByText("Telegram-бот")).toBeInTheDocument();
   });
 });
