@@ -18,6 +18,30 @@ export default defineConfig({
       "@": path.resolve(rootDir, "src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) {
+            return undefined;
+          }
+          if (id.includes("recharts")) {
+            return "charts";
+          }
+          if (id.includes("@tanstack")) {
+            return "tanstack";
+          }
+          if (id.includes("@radix-ui")) {
+            return "radix";
+          }
+          if (id.includes("react-intl") || id.includes("@formatjs")) {
+            return "intl";
+          }
+          return undefined;
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       "/api": {
